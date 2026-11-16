@@ -180,10 +180,6 @@
       [
         "vp_3",
         "vp_7"
-      ],
-      [
-        "vp_1",
-        "vp_4"
       ]
     ],
     "presets": {
@@ -235,7 +231,8 @@
           "goal": "vp_7"
         }
       ]
-    }
+    },
+    "addedToSimulator": true
   },
   "smart_campus_lab": {
     "id": "smart_campus_lab",
