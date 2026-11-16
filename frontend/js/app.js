@@ -210,6 +210,7 @@ let threeState = {
     autoRotate: false,
     // Panorama First-Person Look State
     panoYaw: 0, // radians
+    desiredPanoYaw: 0,
     panoPitch: -0.06, // radians
     panoFov: 75,
     // Dollhouse Orbit Camera State
@@ -348,7 +349,7 @@ function handleResize() {
 }
 
 function updateWalkingPace(val) {
-    const pace = Math.max(0.4, Math.min(3.0, parseFloat(val) || 1.0));
+    const pace = Math.max(0.2, Math.min(3.0, parseFloat(val) || 1.0));
     agentState.walkingPace = pace;
 
     const slider = document.getElementById("walkingPaceSlider");
@@ -371,7 +372,7 @@ function updateWalkingPace(val) {
 
     if (agentState.isPlaying) {
         clearInterval(agentState.timer);
-        const stepIntervalMs = Math.round(900 / agentState.walkingPace);
+        const stepIntervalMs = Math.round(1800 / Math.max(0.25, agentState.walkingPace));
         agentState.timer = setInterval(() => {
             const keepGoing = stepSimulation();
             if (!keepGoing) stopSimulationTimer();
@@ -1064,7 +1065,7 @@ function runFullSimulation() {
     const quickBtn = document.getElementById("btnQuickRunNav");
     if (quickBtn) quickBtn.innerHTML = `<i class="fa-solid fa-pause"></i><span>Pause Simulator</span>`;
 
-    const stepIntervalMs = Math.round(900 / agentState.walkingPace);
+    const stepIntervalMs = Math.round(1800 / Math.max(0.25, agentState.walkingPace));
     agentState.timer = setInterval(() => {
         const keepGoing = stepSimulation();
         if (!keepGoing) {
@@ -2151,7 +2152,10 @@ function syncAgentTo3DScene(snapImmediately = false) {
     }
 
     const targetYaw = -(agentState.headingDeg * Math.PI) / 180 + Math.PI / 2;
-    threeState.panoYaw = targetYaw;
+    threeState.desiredPanoYaw = targetYaw;
+    if (snapImmediately || threeState.panoYaw === undefined) {
+        threeState.panoYaw = targetYaw;
+    }
 
     if (threeState.agentMeshGroup) {
         const curr3D = map2DTo3D(agentState.x || tx, agentState.y || ty);
@@ -2386,14 +2390,14 @@ function animateThreeLoop(timestamp) {
     requestAnimationFrame(animateThreeLoop);
     if (!threeState.renderer || !threeState.scene || !threeState.camera) return;
 
-    const paceAlpha = Math.min(0.45, 0.085 * agentState.walkingPace);
+    // Smooth walking pacing: lower walking pace causes slower, realistic gliding
+    const paceAlpha = Math.max(0.015, Math.min(0.20, 0.045 * agentState.walkingPace));
     if (agentState.targetX !== undefined && agentState.targetY !== undefined) {
         const dx2d = agentState.targetX - agentState.x;
         const dy2d = agentState.targetY - agentState.y;
-        if (Math.hypot(dx2d, dy2d) > 0.4) {
+        if (Math.hypot(dx2d, dy2d) > 0.2) {
             agentState.x += dx2d * paceAlpha;
             agentState.y += dy2d * paceAlpha;
-            agentState.walkBobPhase += 0.18 * agentState.walkingPace;
             if (threeState.cameraMode === "map2d") {
                 renderCanvas();
             }
@@ -2409,25 +2413,48 @@ function animateThreeLoop(timestamp) {
         } else if (threeState.cameraMode === "dollhouse") {
             threeState.orbitTheta += 0.004;
         }
+    } else if (threeState.desiredPanoYaw !== undefined && !threeState.isDragging && threeState.cameraMode === "panorama") {
+        // Smoothly rotate head towards walking direction
+        let diffYaw = (threeState.desiredPanoYaw - threeState.panoYaw) % (Math.PI * 2);
+        if (diffYaw > Math.PI) diffYaw -= Math.PI * 2;
+        if (diffYaw < -Math.PI) diffYaw += Math.PI * 2;
+        if (Math.abs(diffYaw) > 0.005) {
+            threeState.panoYaw += diffYaw * Math.max(0.02, paceAlpha * 1.5);
+        }
     }
 
     threeState.camCurrentPos.lerp(threeState.camDesiredPos, paceAlpha);
     threeState.orbitTarget.lerp(threeState.orbitDesiredTarget, paceAlpha);
 
+    const distToDesired = threeState.camCurrentPos.distanceTo(threeState.camDesiredPos);
+    const isWalking = distToDesired > 0.04;
+    if (isWalking) {
+        agentState.walkBobPhase += 0.11 * Math.max(0.35, agentState.walkingPace);
+    }
+
     if (threeState.agentMeshGroup) {
-        const walkBob = Math.hypot(threeState.camDesiredPos.x - threeState.camCurrentPos.x, threeState.camDesiredPos.z - threeState.camCurrentPos.z) > 0.08
-            ? Math.abs(Math.sin(agentState.walkBobPhase)) * 0.08
+        const walkBob = isWalking
+            ? Math.abs(Math.sin(agentState.walkBobPhase)) * (0.07 * Math.min(1.0, agentState.walkingPace))
             : 0;
         threeState.agentMeshGroup.position.set(threeState.camCurrentPos.x, walkBob, threeState.camCurrentPos.z);
+        if (threeState.desiredPanoYaw !== undefined) {
+            threeState.agentMeshGroup.rotation.y = threeState.desiredPanoYaw;
+        }
     }
 
     if (threeState.cameraMode === "panorama") {
-        const isWalking = threeState.camCurrentPos.distanceTo(threeState.camDesiredPos) > 0.06;
-        const headBob = isWalking ? Math.sin(agentState.walkBobPhase) * 0.035 : 0;
+        // Natural human walking motion: vertical head bob + subtle lateral sway
+        const headBob = isWalking ? Math.sin(agentState.walkBobPhase) * (0.038 * Math.min(1.0, agentState.walkingPace)) : 0;
+        const headSway = isWalking ? Math.cos(agentState.walkBobPhase * 0.5) * (0.016 * Math.min(1.0, agentState.walkingPace)) : 0;
+
+        // Sideways sway perpendicular to camera orientation
+        const perpX = Math.cos(threeState.panoYaw) * headSway;
+        const perpZ = -Math.sin(threeState.panoYaw) * headSway;
+
         threeState.camera.position.set(
-            threeState.camCurrentPos.x,
+            threeState.camCurrentPos.x + perpX,
             threeState.camCurrentPos.y + headBob,
-            threeState.camCurrentPos.z
+            threeState.camCurrentPos.z + perpZ
         );
         const lookDir = new THREE.Vector3(
             Math.sin(threeState.panoYaw) * Math.cos(threeState.panoPitch),

@@ -204,7 +204,7 @@
                             Walking Pace
                         </span>
                         <div class="flex items-center gap-2">
-                            <input id="walkingPaceSlider" type="range" min="0.4" max="3.0" step="0.2" value="1.0" oninput="updateWalkingPace(this.value)" class="w-24 accent-emerald-400 cursor-pointer">
+                            <input id="walkingPaceSlider" type="range" min="0.2" max="3.0" step="0.1" value="1.0" oninput="updateWalkingPace(this.value)" class="w-24 accent-emerald-400 cursor-pointer">
                             <span id="walkingPaceLabel" class="font-mono text-[11px] text-emerald-300 w-10 text-right">1.0x</span>
                         </div>
                     </div>
@@ -295,27 +295,7 @@
                     </div>
                 </div>
 
-                <!-- Dedicated Option: Add Map to VLN Simulator -->
-                <div id="publishToSimCard" class="glass-card rounded-xl p-3.5 border border-indigo-500/40 bg-gradient-to-br from-indigo-950/60 via-purple-950/40 to-slate-900/80 flex flex-col gap-2.5 shadow-lg">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <i class="fa-solid fa-robot text-cyan-400 text-sm"></i>
-                            <span class="font-bold text-xs text-white">Simulator Deployment</span>
-                        </div>
-                        <span id="mapSimStatusBadge" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                            Draft (Not in Simulator)
-                        </span>
-                    </div>
-                    <p class="text-[11px] text-slate-300">
-                        Adds this custom map into the VLN Simulator. If not manually added, the simulator will not load this map.
-                    </p>
-                    <button onclick="addCurrentMapToSimulator()" id="btnAddMapToSim" class="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-bold text-xs shadow-md shadow-indigo-600/30 flex items-center justify-center gap-2 transition">
-                        <i class="fa-solid fa-cloud-arrow-up"></i>
-                        <span id="btnAddMapToSimText">Add Map to VLN Simulator</span>
-                    </button>
-                </div>
-
-                <!-- Create / Configure Room Form -->
+                <!-- Create / Configure Room Form (Above Simulator Deployment) -->
                 <div class="glass-card rounded-xl p-3.5 border border-slate-800 flex flex-col gap-3">
                     <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center justify-between">
                         <span>Create / Configure Room</span>
@@ -359,6 +339,26 @@
                     <button onclick="addRoomDirectly()" id="btnAddRoomDirectly" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition">
                         <i class="fa-solid fa-plus-circle"></i>
                         <span>Insert Room + Auto-Waypoint on Map</span>
+                    </button>
+                </div>
+
+                <!-- Dedicated Option: Add Map to VLN Simulator (Below Adding Rooms) -->
+                <div id="publishToSimCard" class="glass-card rounded-xl p-3.5 border border-indigo-500/40 bg-gradient-to-br from-indigo-950/60 via-purple-950/40 to-slate-900/80 flex flex-col gap-2.5 shadow-lg">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-robot text-cyan-400 text-sm"></i>
+                            <span class="font-bold text-xs text-white">Simulator Deployment</span>
+                        </div>
+                        <span id="mapSimStatusBadge" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                            Draft (Not in Simulator)
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-300">
+                        Adds this custom map into the VLN Simulator. If not manually added, the simulator will not load this map.
+                    </p>
+                    <button onclick="addCurrentMapToSimulator()" id="btnAddMapToSim" class="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-bold text-xs shadow-md shadow-indigo-600/30 flex items-center justify-center gap-2 transition">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <span id="btnAddMapToSimText">Add Map to VLN Simulator</span>
                     </button>
                 </div>
 
@@ -450,9 +450,10 @@
                             <i class="fa-solid fa-gauge-high text-emerald-400 text-[11px]"></i>
                             <span class="text-[11px] text-slate-400 hidden sm:inline">Pace:</span>
                             <select id="quickPaceSelect" onchange="updateWalkingPace(this.value)" class="bg-transparent text-emerald-300 font-mono text-xs focus:outline-none cursor-pointer">
-                                <option value="0.5" class="bg-slate-900">0.5x Slow</option>
+                                <option value="0.3" class="bg-slate-900">0.3x Realistic Walk</option>
+                                <option value="0.6" class="bg-slate-900">0.6x Stroll</option>
                                 <option value="1.0" selected class="bg-slate-900">1.0x Normal</option>
-                                <option value="1.6" class="bg-slate-900">1.6x Brisk</option>
+                                <option value="1.8" class="bg-slate-900">1.8x Brisk</option>
                                 <option value="2.5" class="bg-slate-900">2.5x Fast</option>
                             </select>
                         </div>
