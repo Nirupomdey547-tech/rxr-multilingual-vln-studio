@@ -469,11 +469,11 @@
                 </div>
 
                 <!-- UNIFIED SINGLE STAGE VIEWPORT (Switches seamlessly between 360° Panorama, 3D Dollhouse, and 2D Topological Map) -->
-                <div id="unifiedStageWrapper" class="relative w-full h-[460px] sm:h-[500px] rounded-xl overflow-hidden bg-slate-950 border border-cyan-500/30 shadow-inner">
+                <div id="unifiedStageWrapper" style="height: 520px; min-height: 500px;" class="relative w-full rounded-xl overflow-hidden bg-slate-950 border border-cyan-500/30 shadow-inner">
 
                     <!-- LAYER A: 3D MATTERPORT WEBGL VIEWPORT (Panorama & Dollhouse) -->
-                    <div id="matterport3DWrapper" class="absolute inset-0 w-full h-full">
-                        <canvas id="matterport3DCanvas" class="w-full h-full block cursor-grab active:cursor-grabbing"></canvas>
+                    <div id="matterport3DWrapper" style="width: 100%; height: 100%; position: absolute; inset: 0;" class="absolute inset-0 w-full h-full">
+                        <canvas id="matterport3DCanvas" style="width: 100%; height: 100%; display: block;" class="w-full h-full block cursor-grab active:cursor-grabbing"></canvas>
                         <!-- Projected 3D Floating HTML Labels Overlay -->
                         <div id="labels3DContainer" class="absolute inset-0 pointer-events-none overflow-hidden"></div>
                     </div>

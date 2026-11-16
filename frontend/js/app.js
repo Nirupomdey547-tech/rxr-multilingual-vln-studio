@@ -219,9 +219,11 @@ let threeState = {
     orbitRadius: 22,
     orbitTarget: null,
     orbitDesiredTarget: null,
-    // Smooth Camera Interpolation
+    // Smooth Camera Interpolation & Waypoint Navigation
     camCurrentPos: null,
     camDesiredPos: null,
+    walkWaypoints: [],
+    currentWaypointIndex: 0,
     // Pointer interaction state
     isDragging: false,
     dragStartX: 0,
@@ -331,9 +333,8 @@ window.onload = async function () {
 
 function handleResize() {
     const stage = document.getElementById("unifiedStageWrapper");
-    if (!stage) return;
-    const w = stage.clientWidth || 800;
-    const h = stage.clientHeight || 480;
+    const w = (stage && stage.clientWidth > 50) ? stage.clientWidth : 800;
+    const h = (stage && stage.clientHeight > 50) ? stage.clientHeight : 500;
 
     if (floorplanCanvas) {
         floorplanCanvas.width = w;
@@ -1487,23 +1488,31 @@ function getLocalizedRoomName(room) {
 function initThreeMatterportEngine() {
     const canvas = document.getElementById("matterport3DCanvas");
     const wrapper = document.getElementById("matterport3DWrapper");
+    const stage = document.getElementById("unifiedStageWrapper");
     if (!canvas || !wrapper || typeof THREE === "undefined") return;
 
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x060a14);
-    scene.fog = new THREE.FogExp2(0x060a14, 0.016);
+    const w = (stage && stage.clientWidth > 50) ? stage.clientWidth : ((wrapper && wrapper.clientWidth > 50) ? wrapper.clientWidth : 800);
+    const h = (stage && stage.clientHeight > 50) ? stage.clientHeight : ((wrapper && wrapper.clientHeight > 50) ? wrapper.clientHeight : 500);
 
-    const camera = new THREE.PerspectiveCamera(75, wrapper.clientWidth / wrapper.clientHeight, 0.1, 130);
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0b1329);
+    scene.fog = new THREE.FogExp2(0x0b1329, 0.007);
+
+    const camera = new THREE.PerspectiveCamera(75, w / h, 0.1, 140);
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
-    renderer.setSize(wrapper.clientWidth, wrapper.clientHeight);
+    renderer.setSize(w, h);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
 
-    const ambientLight = new THREE.AmbientLight(0xdbeafe, 0.9);
+    const ambientLight = new THREE.AmbientLight(0xdbeafe, 1.1);
     scene.add(ambientLight);
 
-    const dirLight1 = new THREE.DirectionalLight(0x38bdf8, 0.7);
+    const dirLight1 = new THREE.DirectionalLight(0x38bdf8, 0.75);
     dirLight1.position.set(16, 26, 14);
     scene.add(dirLight1);
+
+    const fillLight = new THREE.DirectionalLight(0x818cf8, 0.45);
+    fillLight.position.set(-16, 20, -14);
+    scene.add(fillLight);
 
     const worldGroup = new THREE.Group();
     const dynamicTrajectoryGroup = new THREE.Group();
@@ -1982,11 +1991,11 @@ function create3DDoorwayMesh(x2d, y2d, orientation, nodeUId, nodeVId, roomU, roo
         group.rotation.y = Math.PI / 2;
     }
 
-    const doorW = 1.15;
-    const doorH = 2.25;
-    const postThick = 0.11;
+    const doorW = 1.35;
+    const doorH = 2.45;
+    const postThick = 0.12;
 
-    const frameMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.85 });
+    const frameMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.9 });
     const leftPost = new THREE.Mesh(new THREE.BoxGeometry(postThick, doorH, postThick), frameMat);
     leftPost.position.set(-doorW / 2, doorH / 2, 0);
     group.add(leftPost);
@@ -1999,27 +2008,50 @@ function create3DDoorwayMesh(x2d, y2d, orientation, nodeUId, nodeVId, roomU, roo
     topLintel.position.set(0, doorH, 0);
     group.add(topLintel);
 
-    const threshGeo = new THREE.PlaneGeometry(doorW, 0.32);
+    // Architectural Doorway Corridor Vestibule Floor: Spans 2.6m deep across the doorway threshold
+    // so there is NEVER an empty dark void beneath the camera while transitioning between rooms!
+    const vestibuleGeo = new THREE.PlaneGeometry(doorW + 0.4, 2.6);
+    const vestibuleMat = new THREE.MeshBasicMaterial({
+        color: 0x1e293b,
+        transparent: true,
+        opacity: 0.85,
+        side: THREE.DoubleSide,
+        depthWrite: false
+    });
+    const vestibuleMesh = new THREE.Mesh(vestibuleGeo, vestibuleMat);
+    vestibuleMesh.rotation.x = -Math.PI / 2;
+    vestibuleMesh.position.y = 0.02;
+    group.add(vestibuleMesh);
+
+    // Golden threshold step
+    const threshGeo = new THREE.PlaneGeometry(doorW, 0.45);
     const threshMat = new THREE.MeshBasicMaterial({
         color: 0xf59e0b,
         transparent: true,
-        opacity: 0.45,
-        side: THREE.DoubleSide
+        opacity: 0.85,
+        side: THREE.DoubleSide,
+        depthWrite: false
     });
     const threshMesh = new THREE.Mesh(threshGeo, threshMat);
     threshMesh.rotation.x = -Math.PI / 2;
-    threshMesh.position.y = 0.025;
+    threshMesh.position.y = 0.03;
     group.add(threshMesh);
 
+    // Warm overhead doorway light so the transition zone is continuously illuminated
+    const doorPointLight = new THREE.PointLight(0xfef08a, 1.8, 9.0);
+    doorPointLight.position.set(0, doorH - 0.15, 0);
+    group.add(doorPointLight);
+
+    // Fully swung open door leaf (folded back towards the wall post so camera glides freely)
     const leafPivot = new THREE.Group();
     leafPivot.position.set(-doorW / 2, 0, 0);
-    leafPivot.rotation.y = 0.88;
+    leafPivot.rotation.y = 1.48; // fully open
 
-    const leafGeo = new THREE.BoxGeometry(doorW * 0.88, doorH - 0.06, 0.045);
+    const leafGeo = new THREE.BoxGeometry(doorW * 0.88, doorH - 0.06, 0.04);
     const leafMat = new THREE.MeshBasicMaterial({
         color: 0x38bdf8,
         transparent: true,
-        opacity: 0.24,
+        opacity: 0.28,
         depthWrite: false
     });
     const leafMesh = new THREE.Mesh(leafGeo, leafMat);
@@ -2028,7 +2060,7 @@ function create3DDoorwayMesh(x2d, y2d, orientation, nodeUId, nodeVId, roomU, roo
 
     const leafEdges = new THREE.LineSegments(
         new THREE.EdgesGeometry(leafGeo),
-        new THREE.LineBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.9 })
+        new THREE.LineBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.85 })
     );
     leafEdges.position.copy(leafMesh.position);
     leafPivot.add(leafEdges);
@@ -2043,12 +2075,13 @@ function create3DDoorwayMesh(x2d, y2d, orientation, nodeUId, nodeVId, roomU, roo
     group.add(leafPivot);
 
     const hitBox = new THREE.Mesh(
-        new THREE.BoxGeometry(doorW, doorH, 0.45),
+        new THREE.BoxGeometry(doorW * 1.25, doorH, 1.2),
         new THREE.MeshBasicMaterial({ visible: false })
     );
     hitBox.position.y = doorH / 2;
     hitBox.userData = {
         doorBetween: [nodeUId, nodeVId],
+        doorPos2D: { x: x2d, y: y2d },
         roomUId: roomU ? roomU.id : null,
         roomVId: roomV ? roomV.id : null,
         roomUName: roomU ? roomU.name : nodeUId,
@@ -2139,12 +2172,16 @@ function syncAgentTo3DScene(snapImmediately = false) {
     if (snapImmediately) {
         agentState.x = tx;
         agentState.y = ty;
+        threeState.walkWaypoints = [];
+        threeState.currentWaypointIndex = 0;
     }
 
     const p3d = map2DTo3D(tx, ty);
     if (threeState.camDesiredPos && threeState.orbitDesiredTarget) {
-        threeState.camDesiredPos.set(p3d.x, 1.55, p3d.z);
-        threeState.orbitDesiredTarget.set(p3d.x, 0.9, p3d.z);
+        if (snapImmediately || !threeState.walkWaypoints || threeState.walkWaypoints.length === 0) {
+            threeState.camDesiredPos.set(p3d.x, 1.55, p3d.z);
+            threeState.orbitDesiredTarget.set(p3d.x, 0.9, p3d.z);
+        }
         if (snapImmediately) {
             threeState.camCurrentPos.copy(threeState.camDesiredPos);
             threeState.orbitTarget.copy(threeState.orbitDesiredTarget);
@@ -2242,7 +2279,21 @@ function setup3DViewportInteractions(canvas) {
     });
 
     window.addEventListener("pointermove", (e) => {
-        if (!threeState.isDragging) return;
+        if (!threeState.isDragging) {
+            const rect = canvas.getBoundingClientRect();
+            if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+                mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+                raycaster.setFromCamera(mouse, threeState.camera);
+                const hits = raycaster.intersectObjects(threeState.clickableHotspots, false);
+                if (hits.length > 0 && hits[0].object.userData && (hits[0].object.userData.doorBetween || hits[0].object.userData.nodeId)) {
+                    canvas.style.cursor = "pointer";
+                } else {
+                    canvas.style.cursor = (threeState.cameraMode === "map2d") ? "crosshair" : "grab";
+                }
+            }
+            return;
+        }
         const dx = e.clientX - threeState.dragStartX;
         const dy = e.clientY - threeState.dragStartY;
         threeState.dragStartX = e.clientX;
@@ -2301,6 +2352,12 @@ function setup3DViewportInteractions(canvas) {
                             updateSelectedEntityInspector();
                             renderRoomsListInEditor();
                             renderCanvas();
+
+                            // In Panorama view, walking through the clicked doorway into connected room
+                            if (threeState.cameraMode === "panorama") {
+                                const nextId = (agentState.currentNodeId === uId) ? vId : uId;
+                                onClicked3DHotspot(nextId, false, false, hitData.doorPos2D);
+                            }
                         } else if (hitData.roomId) {
                             selectedEntity = { type: "room", id: hitData.roomId };
                             updateSelectedEntityInspector();
@@ -2315,7 +2372,7 @@ function setup3DViewportInteractions(canvas) {
                         } else if (hitData.doorBetween) {
                             const [uId, vId] = hitData.doorBetween;
                             const nextId = (agentState.currentNodeId === uId) ? vId : uId;
-                            onClicked3DHotspot(nextId, false, false);
+                            onClicked3DHotspot(nextId, false, false, hitData.doorPos2D);
                         } else if (hitData.roomId) {
                             switchPanoramaToRoom(hitData.roomId);
                         }
@@ -2339,7 +2396,7 @@ function setup3DViewportInteractions(canvas) {
     }, { passive: false });
 }
 
-function onClicked3DHotspot(nodeId, autoSwitchToPanorama = false, isDirectUserAction = true) {
+function onClicked3DHotspot(nodeId, autoSwitchToPanorama = false, isDirectUserAction = true, viaDoorPos2D = null) {
     const map = getActiveMap();
     if (!map) return;
     const targetNode = map.nodes.find(n => n.id === nodeId);
@@ -2366,18 +2423,88 @@ function onClicked3DHotspot(nodeId, autoSwitchToPanorama = false, isDirectUserAc
         }
     }
 
-    if (prevNode && prevNode.id !== targetNode.id) {
-        agentState.headingDeg = Math.round(Math.atan2(targetNode.y - prevNode.y, targetNode.x - prevNode.x) * 180 / Math.PI);
+    if (autoSwitchToPanorama && threeState.cameraMode !== "panorama") {
+        set3DCameraMode("panorama");
     }
+
+    const isDifferentRoom = prevNode && targetNode && prevNode.roomId !== targetNode.roomId;
+    let door = null;
+    if (isDifferentRoom) {
+        door = viaDoorPos2D || (threeState.doorPoints2D ? threeState.doorPoints2D.find(d =>
+            (d.roomUId === prevNode.roomId && d.roomVId === targetNode.roomId) ||
+            (d.roomUId === targetNode.roomId && d.roomVId === prevNode.roomId) ||
+            (d.uId === prevNode.id && d.vId === targetNode.id) ||
+            (d.uId === targetNode.id && d.vId === prevNode.id)
+        ) : null);
+    }
+
+    // Build smooth architectural waypoints: approach door first, step across threshold, then enter room
+    threeState.walkWaypoints = [];
+    threeState.currentWaypointIndex = 0;
+
+    if (door && prevNode) {
+        // Waypoint 1: Approach doorway
+        const pDoor = map2DTo3D(door.x, door.y);
+        const yawToDoor = -(Math.atan2(door.y - prevNode.y, door.x - prevNode.x) * 180 / Math.PI) * Math.PI / 180 + Math.PI / 2;
+        threeState.walkWaypoints.push({
+            x3D: pDoor.x,
+            z3D: pDoor.z,
+            x2D: door.x,
+            y2D: door.y,
+            yaw: yawToDoor,
+            isDoorway: true
+        });
+
+        // Waypoint 2: Step through doorway into target room viewpoint
+        const pTarget = map2DTo3D(targetNode.x, targetNode.y);
+        const yawToTarget = -(Math.atan2(targetNode.y - door.y, targetNode.x - door.x) * 180 / Math.PI) * Math.PI / 180 + Math.PI / 2;
+        threeState.walkWaypoints.push({
+            x3D: pTarget.x,
+            z3D: pTarget.z,
+            x2D: targetNode.x,
+            y2D: targetNode.y,
+            yaw: yawToTarget,
+            isFinal: true
+        });
+
+        threeState.camDesiredPos.set(pDoor.x, 1.55, pDoor.z);
+        threeState.orbitDesiredTarget.set(pDoor.x, 0.9, pDoor.z);
+        threeState.desiredPanoYaw = yawToDoor;
+        agentState.targetX = door.x;
+        agentState.targetY = door.y;
+        agentState.headingDeg = Math.round(Math.atan2(door.y - prevNode.y, door.x - prevNode.x) * 180 / Math.PI);
+    } else {
+        const pTarget = map2DTo3D(targetNode.x, targetNode.y);
+        const yawToTarget = prevNode
+            ? -(Math.atan2(targetNode.y - prevNode.y, targetNode.x - prevNode.x) * 180 / Math.PI) * Math.PI / 180 + Math.PI / 2
+            : -(agentState.headingDeg * Math.PI) / 180 + Math.PI / 2;
+
+        threeState.walkWaypoints.push({
+            x3D: pTarget.x,
+            z3D: pTarget.z,
+            x2D: targetNode.x,
+            y2D: targetNode.y,
+            yaw: yawToTarget,
+            isFinal: true
+        });
+
+        threeState.camDesiredPos.set(pTarget.x, 1.55, pTarget.z);
+        threeState.orbitDesiredTarget.set(pTarget.x, 0.9, pTarget.z);
+        threeState.desiredPanoYaw = yawToTarget;
+        agentState.targetX = targetNode.x;
+        agentState.targetY = targetNode.y;
+        if (prevNode) {
+            agentState.headingDeg = Math.round(Math.atan2(targetNode.y - prevNode.y, targetNode.x - prevNode.x) * 180 / Math.PI);
+        }
+    }
+
     agentState.currentNodeId = targetNode.id;
-    agentState.targetX = targetNode.x;
-    agentState.targetY = targetNode.y;
     if (agentState.executedNodes[agentState.executedNodes.length - 1] !== targetNode.id) {
         agentState.executedNodes.push(targetNode.id);
     }
 
     const room = map.rooms.find(r => r.id === targetNode.roomId);
-    const crossedDoor = (prevNode && prevNode.roomId !== targetNode.roomId) ? " [Through Doorway]" : "";
+    const crossedDoor = isDifferentRoom ? " [Through Doorway]" : "";
     appendActionLog(`[WALK] Moving to ${targetNode.id} (${room ? room.name : "Room"})${crossedDoor} at ${agentState.walkingPace.toFixed(1)}x pace`);
     updateMetricsDisplay(targetNode.id === agentState.goalNodeId);
     renderCanvas();
@@ -2402,10 +2529,22 @@ function animateThreeLoop(timestamp) {
     // 2.2x = 5.5 m/s (fast brisk walk)
     const walkSpeed = 2.5 * Math.max(0.35, agentState.walkingPace);
 
+    // Multi-stage waypoint navigation (e.g. Room A -> Doorway Portal -> Room B)
+    if (threeState.walkWaypoints && threeState.walkWaypoints.length > threeState.currentWaypointIndex) {
+        const currWp = threeState.walkWaypoints[threeState.currentWaypointIndex];
+        threeState.camDesiredPos.set(currWp.x3D, 1.55, currWp.z3D);
+        threeState.orbitDesiredTarget.set(currWp.x3D, 0.9, currWp.z3D);
+        agentState.targetX = currWp.x2D;
+        agentState.targetY = currWp.y2D;
+        if (currWp.yaw !== undefined) {
+            threeState.desiredPanoYaw = currWp.yaw;
+        }
+    }
+
     const dx3D = threeState.camDesiredPos.x - threeState.camCurrentPos.x;
     const dz3D = threeState.camDesiredPos.z - threeState.camCurrentPos.z;
     const dist3D = Math.hypot(dx3D, dz3D);
-    const isWalking = dist3D > 0.04;
+    const isWalking = dist3D > 0.05;
 
     if (isWalking) {
         const stepDist = Math.min(dist3D, walkSpeed * dt);
@@ -2416,8 +2555,23 @@ function animateThreeLoop(timestamp) {
     } else {
         threeState.camCurrentPos.x = threeState.camDesiredPos.x;
         threeState.camCurrentPos.z = threeState.camDesiredPos.z;
-        // Free user orientation upon arrival
-        threeState.desiredPanoYaw = undefined;
+
+        // Advance to next waypoint (e.g. crossing doorway threshold into connected room)
+        if (threeState.walkWaypoints && threeState.currentWaypointIndex < threeState.walkWaypoints.length - 1) {
+            threeState.currentWaypointIndex++;
+            const nextWp = threeState.walkWaypoints[threeState.currentWaypointIndex];
+            threeState.camDesiredPos.set(nextWp.x3D, 1.55, nextWp.z3D);
+            threeState.orbitDesiredTarget.set(nextWp.x3D, 0.9, nextWp.z3D);
+            agentState.targetX = nextWp.x2D;
+            agentState.targetY = nextWp.y2D;
+            if (nextWp.yaw !== undefined) {
+                threeState.desiredPanoYaw = nextWp.yaw;
+            }
+        } else {
+            // Reached final viewpoint
+            threeState.walkWaypoints = [];
+            threeState.desiredPanoYaw = undefined;
+        }
     }
 
     if (agentState.targetX !== undefined && agentState.targetY !== undefined) {
