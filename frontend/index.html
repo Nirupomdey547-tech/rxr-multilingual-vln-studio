@@ -256,6 +256,25 @@
                         <i class="fa-solid fa-circle-info text-indigo-400 mr-1"></i>
                         Drag rooms or viewpoint nodes on the canvas to reposition them.
                     </p>
+
+                    <!-- Quick Node Linker Dropdown Tool -->
+                    <div id="quickLinkPanel" class="mt-2.5 p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-col gap-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-semibold text-amber-300 flex items-center gap-1.5">
+                                <i class="fa-solid fa-bezier-curve"></i>
+                                Link Viewpoints
+                            </span>
+                            <span id="activeLinkIndicator" class="text-[10px] font-mono text-slate-400">Click or Pick</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <select id="linkNodeASelect" class="flex-1 bg-slate-950 border border-slate-700/80 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-amber-400"></select>
+                            <i class="fa-solid fa-arrows-left-right text-slate-500 text-xs shrink-0"></i>
+                            <select id="linkNodeBSelect" class="flex-1 bg-slate-950 border border-slate-700/80 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-amber-400"></select>
+                            <button onclick="linkNodesFromDropdown()" class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md transition shrink-0" title="Connect Selected Nodes">
+                                Link
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Quick Add Custom Room Form -->

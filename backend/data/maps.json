@@ -13,7 +13,11 @@
         "w": 220,
         "h": 160,
         "color": "#6366f1",
-        "landmarks": ["Sofa", "Smart TV", "Coffee Table"]
+        "landmarks": [
+          "Sofa",
+          "Smart TV",
+          "Coffee Table"
+        ]
       },
       {
         "id": "r_hallway",
@@ -25,7 +29,10 @@
         "w": 170,
         "h": 150,
         "color": "#8b5cf6",
-        "landmarks": ["Wall Painting", "Coat Rack"]
+        "landmarks": [
+          "Wall Painting",
+          "Coat Rack"
+        ]
       },
       {
         "id": "r_kitchen",
@@ -37,7 +44,11 @@
         "w": 210,
         "h": 155,
         "color": "#10b981",
-        "landmarks": ["Fridge", "Island Counter", "Oven"]
+        "landmarks": [
+          "Fridge",
+          "Island Counter",
+          "Oven"
+        ]
       },
       {
         "id": "r_dining",
@@ -49,7 +60,10 @@
         "w": 210,
         "h": 150,
         "color": "#f59e0b",
-        "landmarks": ["Dining Table", "Chandelier"]
+        "landmarks": [
+          "Dining Table",
+          "Chandelier"
+        ]
       },
       {
         "id": "r_bedroom",
@@ -61,7 +75,11 @@
         "w": 220,
         "h": 145,
         "color": "#ec4899",
-        "landmarks": ["King Bed", "Wardrobe", "Lamp"]
+        "landmarks": [
+          "King Bed",
+          "Wardrobe",
+          "Lamp"
+        ]
       },
       {
         "id": "r_study",
@@ -73,27 +91,96 @@
         "w": 170,
         "h": 110,
         "color": "#06b6d4",
-        "landmarks": ["Bookshelf", "Study Desk"]
+        "landmarks": [
+          "Bookshelf",
+          "Study Desk"
+        ]
       }
     ],
     "nodes": [
-      { "id": "vp_1", "x": 135, "y": 125, "roomId": "r_living", "label": "Living West" },
-      { "id": "vp_2", "x": 230, "y": 145, "roomId": "r_living", "label": "Living East" },
-      { "id": "vp_3", "x": 395, "y": 190, "roomId": "r_hallway", "label": "Hall Center" },
-      { "id": "vp_4", "x": 615, "y": 125, "roomId": "r_kitchen", "label": "Kitchen Main" },
-      { "id": "vp_5", "x": 620, "y": 310, "roomId": "r_dining", "label": "Dining Table" },
-      { "id": "vp_6", "x": 170, "y": 315, "roomId": "r_bedroom", "label": "Bedroom Center" },
-      { "id": "vp_7", "x": 395, "y": 350, "roomId": "r_study", "label": "Study Desk" }
+      {
+        "id": "vp_1",
+        "x": 135,
+        "y": 125,
+        "roomId": "r_living",
+        "label": "Living West"
+      },
+      {
+        "id": "vp_2",
+        "x": 230,
+        "y": 145,
+        "roomId": "r_living",
+        "label": "Living East"
+      },
+      {
+        "id": "vp_3",
+        "x": 395,
+        "y": 190,
+        "roomId": "r_hallway",
+        "label": "Hall Center"
+      },
+      {
+        "id": "vp_4",
+        "x": 615,
+        "y": 125,
+        "roomId": "r_kitchen",
+        "label": "Kitchen Main"
+      },
+      {
+        "id": "vp_5",
+        "x": 620,
+        "y": 310,
+        "roomId": "r_dining",
+        "label": "Dining Table"
+      },
+      {
+        "id": "vp_6",
+        "x": 170,
+        "y": 315,
+        "roomId": "r_bedroom",
+        "label": "Bedroom Center"
+      },
+      {
+        "id": "vp_7",
+        "x": 395,
+        "y": 350,
+        "roomId": "r_study",
+        "label": "Study Desk"
+      }
     ],
     "edges": [
-      ["vp_1", "vp_2"],
-      ["vp_2", "vp_3"],
-      ["vp_3", "vp_4"],
-      ["vp_4", "vp_5"],
-      ["vp_3", "vp_5"],
-      ["vp_3", "vp_6"],
-      ["vp_1", "vp_6"],
-      ["vp_3", "vp_7"]
+      [
+        "vp_1",
+        "vp_2"
+      ],
+      [
+        "vp_2",
+        "vp_3"
+      ],
+      [
+        "vp_3",
+        "vp_4"
+      ],
+      [
+        "vp_4",
+        "vp_5"
+      ],
+      [
+        "vp_3",
+        "vp_5"
+      ],
+      [
+        "vp_3",
+        "vp_6"
+      ],
+      [
+        "vp_1",
+        "vp_6"
+      ],
+      [
+        "vp_3",
+        "vp_7"
+      ]
     ],
     "presets": {
       "en": [
@@ -160,7 +247,10 @@
         "w": 175,
         "h": 160,
         "color": "#6366f1",
-        "landmarks": ["Reception Desk", "Kiosk"]
+        "landmarks": [
+          "Reception Desk",
+          "Kiosk"
+        ]
       },
       {
         "id": "r_corridor",
@@ -172,7 +262,10 @@
         "w": 220,
         "h": 130,
         "color": "#8b5cf6",
-        "landmarks": ["Notice Board", "Water Cooler"]
+        "landmarks": [
+          "Notice Board",
+          "Water Cooler"
+        ]
       },
       {
         "id": "r_ailab",
@@ -184,7 +277,10 @@
         "w": 220,
         "h": 105,
         "color": "#06b6d4",
-        "landmarks": ["GPU Cluster", "Whiteboard"]
+        "landmarks": [
+          "GPU Cluster",
+          "Whiteboard"
+        ]
       },
       {
         "id": "r_drone",
@@ -196,7 +292,10 @@
         "w": 215,
         "h": 155,
         "color": "#10b981",
-        "landmarks": ["Motion Capture Net", "Quadcopter"]
+        "landmarks": [
+          "Motion Capture Net",
+          "Quadcopter"
+        ]
       },
       {
         "id": "r_seminar",
@@ -208,22 +307,70 @@
         "w": 215,
         "h": 150,
         "color": "#f59e0b",
-        "landmarks": ["Projector Screen", "Podium"]
+        "landmarks": [
+          "Projector Screen",
+          "Podium"
+        ]
       }
     ],
     "nodes": [
-      { "id": "vp_1", "x": 140, "y": 220, "roomId": "r_lobby", "label": "Lobby Entry" },
-      { "id": "vp_2", "x": 375, "y": 220, "roomId": "r_corridor", "label": "Corridor Hub" },
-      { "id": "vp_3", "x": 375, "y": 78, "roomId": "r_ailab", "label": "AI Lab Center" },
-      { "id": "vp_4", "x": 625, "y": 125, "roomId": "r_drone", "label": "Drone Test Pad" },
-      { "id": "vp_5", "x": 625, "y": 310, "roomId": "r_seminar", "label": "Seminar Stage" }
+      {
+        "id": "vp_1",
+        "x": 140,
+        "y": 220,
+        "roomId": "r_lobby",
+        "label": "Lobby Entry"
+      },
+      {
+        "id": "vp_2",
+        "x": 375,
+        "y": 220,
+        "roomId": "r_corridor",
+        "label": "Corridor Hub"
+      },
+      {
+        "id": "vp_3",
+        "x": 375,
+        "y": 78,
+        "roomId": "r_ailab",
+        "label": "AI Lab Center"
+      },
+      {
+        "id": "vp_4",
+        "x": 625,
+        "y": 125,
+        "roomId": "r_drone",
+        "label": "Drone Test Pad"
+      },
+      {
+        "id": "vp_5",
+        "x": 625,
+        "y": 310,
+        "roomId": "r_seminar",
+        "label": "Seminar Stage"
+      }
     ],
     "edges": [
-      ["vp_1", "vp_2"],
-      ["vp_2", "vp_3"],
-      ["vp_2", "vp_4"],
-      ["vp_3", "vp_4"],
-      ["vp_2", "vp_5"]
+      [
+        "vp_1",
+        "vp_2"
+      ],
+      [
+        "vp_2",
+        "vp_3"
+      ],
+      [
+        "vp_2",
+        "vp_4"
+      ],
+      [
+        "vp_3",
+        "vp_4"
+      ],
+      [
+        "vp_2",
+        "vp_5"
+      ]
     ],
     "presets": {
       "en": [
@@ -256,6 +403,126 @@
           "goal": "vp_4"
         }
       ]
+    }
+  },
+  "custom_map_5368": {
+    "id": "custom_map_5368",
+    "name": "Custom VLN Environment 3",
+    "rooms": [],
+    "nodes": [],
+    "edges": [],
+    "presets": {
+      "en": [],
+      "hi": [],
+      "te": []
+    }
+  },
+  "custom_map_5788": {
+    "id": "custom_map_5788",
+    "name": "Custom VLN Environment 4",
+    "rooms": [
+      {
+        "id": "r_custom_5266",
+        "name": "Custom Room 1",
+        "x": 422,
+        "y": 178,
+        "w": 170,
+        "h": 130,
+        "color": "#6366f1",
+        "landmarks": [
+          "table",
+          "sofa"
+        ]
+      },
+      {
+        "id": "r_custom_8862",
+        "name": "Custom Room 2",
+        "x": 228,
+        "y": 180,
+        "w": 170,
+        "h": 130,
+        "color": "#6366f1",
+        "landmarks": [
+          "oven",
+          "table"
+        ]
+      },
+      {
+        "id": "r_custom_8004",
+        "name": "Custom Room 3",
+        "x": 230,
+        "y": 335,
+        "w": 170,
+        "h": 130,
+        "color": "#6366f1",
+        "landmarks": [
+          "bed",
+          "table"
+        ]
+      }
+    ],
+    "nodes": [
+      {
+        "id": "vp_1",
+        "x": 507,
+        "y": 243,
+        "roomId": "r_custom_5266",
+        "label": "Custom Room 1 Center"
+      },
+      {
+        "id": "vp_2",
+        "x": 313,
+        "y": 245,
+        "roomId": "r_custom_8862",
+        "label": "Custom Room 2 Center"
+      },
+      {
+        "id": "vp_3",
+        "x": 315,
+        "y": 400,
+        "roomId": "r_custom_8004",
+        "label": "Custom Room 3 Center"
+      },
+      {
+        "id": "vp_4",
+        "x": 315,
+        "y": 245,
+        "roomId": "r_custom_8862",
+        "label": "Custom Room 2 Node"
+      },
+      {
+        "id": "vp_5",
+        "x": 310,
+        "y": 401,
+        "roomId": "r_custom_8004",
+        "label": "Custom Room 3 Node"
+      },
+      {
+        "id": "vp_6",
+        "x": 507,
+        "y": 244,
+        "roomId": "r_custom_5266",
+        "label": "Custom Room 1 Node"
+      }
+    ],
+    "edges": [
+      [
+        "vp_1",
+        "vp_2"
+      ],
+      [
+        "vp_1",
+        "vp_3"
+      ],
+      [
+        "vp_2",
+        "vp_3"
+      ]
+    ],
+    "presets": {
+      "en": [],
+      "hi": [],
+      "te": []
     }
   }
 }

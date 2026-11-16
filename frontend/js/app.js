@@ -181,6 +181,7 @@ let agentState = {
 let dragTarget = null; // { type: 'room'|'node', id: string, offsetX: number, offsetY: number }
 let selectedEntity = null; // { type: 'room'|'node', id: string }
 let edgeSourceNodeId = null;
+let isConnectingDrag = false;
 let mousePos = { x: 0, y: 0 };
 
 const floorplanCanvas = document.getElementById("floorplanCanvas");
@@ -427,6 +428,7 @@ function loadMap(mapId) {
     updateMapStatsHeader();
     populateStartGoalDropdowns();
     populatePresetsDropdown();
+    populateLinkDropdowns();
     renderRoomsListInEditor();
 
     // Set initial start/goal
@@ -437,6 +439,13 @@ function loadMap(mapId) {
         const goalSel = document.getElementById("goalNodeSelect");
         if (startSel) startSel.value = agentState.startNodeId;
         if (goalSel) goalSel.value = agentState.goalNodeId;
+        agentState.plannedPath = computeShortestPath(agentState.startNodeId, agentState.goalNodeId);
+    } else {
+        agentState.startNodeId = "";
+        agentState.goalNodeId = "";
+        agentState.currentNodeId = "";
+        agentState.plannedPath = [];
+        agentState.executedNodes = [];
     }
     applyPresetInstruction();
     resetSimulation();
@@ -450,6 +459,7 @@ function updateMapStatsHeader() {
         `(${map.rooms.length} Rooms • ${map.nodes.length} Viewpoints • ${map.edges.length} Edges)`;
     document.getElementById("roomCountLabel").textContent = map.rooms.length;
     renderQuickRoomJumpBar();
+    populateLinkDropdowns();
 }
 
 function renderQuickRoomJumpBar() {
@@ -692,9 +702,29 @@ function populateStartGoalDropdowns() {
     startSel.innerHTML = "";
     goalSel.innerHTML = "";
 
+    if (!map.nodes || map.nodes.length === 0) {
+        const opt1 = document.createElement("option");
+        opt1.value = "";
+        opt1.textContent = "(Add rooms or viewpoints first)";
+        startSel.appendChild(opt1);
+        const opt2 = document.createElement("option");
+        opt2.value = "";
+        opt2.textContent = "(Add rooms or viewpoints first)";
+        goalSel.appendChild(opt2);
+        return;
+    }
+
+    // Auto-validate start and goal IDs against active map
+    if (!map.nodes.some(n => n.id === agentState.startNodeId)) {
+        agentState.startNodeId = map.nodes[0].id;
+    }
+    if (!map.nodes.some(n => n.id === agentState.goalNodeId)) {
+        agentState.goalNodeId = map.nodes[map.nodes.length - 1].id;
+    }
+
     map.nodes.forEach(node => {
         const room = map.rooms.find(r => r.id === node.roomId);
-        const label = `${node.id} — ${room ? room.name : node.label}`;
+        const label = `${node.id} — ${room ? room.name : (node.label || "Viewpoint")}`;
 
         const opt1 = document.createElement("option");
         opt1.value = node.id;
@@ -1095,12 +1125,34 @@ function renderCanvas() {
         const isStart = node.id === agentState.startNodeId;
         const isGoal = node.id === agentState.goalNodeId;
         const isSelected = selectedEntity && selectedEntity.type === "node" && selectedEntity.id === node.id;
+        const isEdgeSource = (currentMode === "editor" && editorTool === "connectEdge" && edgeSourceNodeId === node.id);
+        const isHoverCandidate = (currentMode === "editor" && editorTool === "connectEdge" && edgeSourceNodeId && edgeSourceNodeId !== node.id && Math.hypot(node.x - mousePos.x, node.y - mousePos.y) <= 25);
 
         ctx.save();
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, isGoal || isStart ? 9 : 7, 0, Math.PI * 2);
 
-        if (isGoal) {
+        // Pulsing / glowing halos for edge linking
+        if (isEdgeSource) {
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, 17, 0, Math.PI * 2);
+            ctx.strokeStyle = "#f59e0b";
+            ctx.lineWidth = 3;
+            ctx.setLineDash([4, 4]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        } else if (isHoverCandidate) {
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, 16, 0, Math.PI * 2);
+            ctx.strokeStyle = "#10b981";
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
+
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, isGoal || isStart || isEdgeSource ? 10 : 7, 0, Math.PI * 2);
+
+        if (isEdgeSource) {
+            ctx.fillStyle = "#f59e0b";
+        } else if (isGoal) {
             ctx.fillStyle = "#10b981";
         } else if (isStart) {
             ctx.fillStyle = "#6366f1";
@@ -1108,14 +1160,15 @@ function renderCanvas() {
             ctx.fillStyle = "#475569";
         }
         ctx.fill();
-        ctx.lineWidth = isSelected ? 3 : 2;
-        ctx.strokeStyle = isSelected ? "#38bdf8" : "#f8fafc";
+        ctx.lineWidth = isSelected || isEdgeSource ? 3 : 2;
+        ctx.strokeStyle = isSelected ? "#38bdf8" : (isEdgeSource ? "#fbbf24" : "#f8fafc");
         ctx.stroke();
 
-        if (showIds) {
+        if (showIds || isEdgeSource || isHoverCandidate) {
             ctx.font = "600 10px JetBrains Mono, monospace";
-            ctx.fillStyle = "#e2e8f0";
-            ctx.fillText(node.id, node.x - 12, node.y - 12);
+            ctx.fillStyle = isEdgeSource ? "#fbbf24" : (isHoverCandidate ? "#34d399" : "#e2e8f0");
+            const labelText = isEdgeSource ? `${node.id} (Source)` : (isHoverCandidate ? `${node.id} (Target)` : node.id);
+            ctx.fillText(labelText, node.x - 12, node.y - 13);
         }
         ctx.restore();
     });
@@ -2102,6 +2155,7 @@ function updateProjected3DLabels() {
 function setEditorTool(tool) {
     editorTool = tool;
     edgeSourceNodeId = null;
+    isConnectingDrag = false;
     ["select", "addRoom", "addNode", "connectEdge"].forEach(t => {
         const btn = document.getElementById(`toolBtn-${t}`);
         if (!btn) return;
@@ -2116,9 +2170,11 @@ function setEditorTool(tool) {
         select: "Drag rooms or viewpoint nodes on the 2D canvas to reposition them in 2D & 3D.",
         addRoom: "Click anywhere on the 2D floorplan canvas to place a new Room with 3D walls & waypoint.",
         addNode: "Click anywhere on the 2D floorplan canvas to drop a new Viewpoint Node.",
-        connectEdge: "Click a source Viewpoint Node, then click a destination Node to link them."
+        connectEdge: "Link Nodes: Click or drag from a source viewpoint to a target viewpoint (or use the dropdown below)."
     };
     document.getElementById("editorToolHint").innerHTML = `<i class="fa-solid fa-circle-info text-indigo-400 mr-1"></i> ${hints[tool]}`;
+    const activeLinkInd = document.getElementById("activeLinkIndicator");
+    if (activeLinkInd) activeLinkInd.textContent = (tool === "connectEdge") ? "Interactive Mode" : "Click or Pick";
     renderCanvas();
 }
 
@@ -2130,10 +2186,13 @@ function setupCanvasEvents() {
 }
 
 function getCanvasCoords(e) {
+    if (!floorplanCanvas) return { x: 0, y: 0 };
     const rect = floorplanCanvas.getBoundingClientRect();
+    const scaleX = rect.width ? (floorplanCanvas.width / rect.width) : 1;
+    const scaleY = rect.height ? (floorplanCanvas.height / rect.height) : 1;
     return {
-        x: Math.round(e.clientX - rect.left),
-        y: Math.round(e.clientY - rect.top)
+        x: Math.round((e.clientX - rect.left) * scaleX),
+        y: Math.round((e.clientY - rect.top) * scaleY)
     };
 }
 
@@ -2143,7 +2202,7 @@ function onCanvasPointerDown(e) {
     if (!map) return;
 
     if (currentMode === "simulator") {
-        const clickedNode = map.nodes.find(n => Math.hypot(n.x - pt.x, n.y - pt.y) <= 15);
+        const clickedNode = map.nodes.find(n => Math.hypot(n.x - pt.x, n.y - pt.y) <= 20);
         if (clickedNode) {
             onClicked3DHotspot(clickedNode.id, true);
             return;
@@ -2166,33 +2225,31 @@ function onCanvasPointerDown(e) {
     }
 
     if (editorTool === "connectEdge") {
-        const clickedNode = map.nodes.find(n => Math.hypot(n.x - pt.x, n.y - pt.y) <= 14);
+        const clickedNode = map.nodes.find(n => Math.hypot(n.x - pt.x, n.y - pt.y) <= 25);
         if (clickedNode) {
             if (!edgeSourceNodeId) {
                 edgeSourceNodeId = clickedNode.id;
-                showToast(`Selected ${clickedNode.id}. Now click another node to link.`, "info");
-            } else if (edgeSourceNodeId !== clickedNode.id) {
-                const exists = map.edges.some(([a, b]) =>
-                    (a === edgeSourceNodeId && b === clickedNode.id) || (a === clickedNode.id && b === edgeSourceNodeId)
-                );
-                if (!exists) {
-                    map.edges.push([edgeSourceNodeId, clickedNode.id]);
-                    showToast(`Connected ${edgeSourceNodeId} ↔ ${clickedNode.id}`, "success");
-                    updateMapStatsHeader();
-                    syncMapToBackend(map);
-                    schedule3DSceneRebuild();
-                }
+                isConnectingDrag = true;
+                showToast(`Selected source ${clickedNode.id}. Now click or drag to destination node.`, "info");
+            } else if (edgeSourceNodeId === clickedNode.id) {
+                showToast(`Deselected ${clickedNode.id}`, "info");
                 edgeSourceNodeId = null;
+                isConnectingDrag = false;
+            } else {
+                connectNodes(edgeSourceNodeId, clickedNode.id);
+                edgeSourceNodeId = null;
+                isConnectingDrag = false;
             }
             renderCanvas();
         } else {
-            edgeSourceNodeId = null;
-            renderCanvas();
+            if (edgeSourceNodeId) {
+                showToast(`Source ${edgeSourceNodeId} is active. Click a destination node to complete link (or click ${edgeSourceNodeId} to cancel).`, "info");
+            }
         }
         return;
     }
 
-    const hitNode = map.nodes.find(n => Math.hypot(n.x - pt.x, n.y - pt.y) <= 13);
+    const hitNode = map.nodes.find(n => Math.hypot(n.x - pt.x, n.y - pt.y) <= 20);
     if (hitNode) {
         selectedEntity = { type: "node", id: hitNode.id };
         dragTarget = { type: "node", id: hitNode.id, offsetX: pt.x - hitNode.x, offsetY: pt.y - hitNode.y };
@@ -2270,12 +2327,115 @@ function onCanvasPointerMove(e) {
     renderCanvas();
 }
 
-function onCanvasPointerUp() {
+function onCanvasPointerUp(e) {
     if (dragTarget) {
         dragTarget = null;
         syncMapToBackend(getActiveMap());
         schedule3DSceneRebuild();
     }
+    if (isConnectingDrag && edgeSourceNodeId) {
+        const pt = getCanvasCoords(e);
+        const map = getActiveMap();
+        if (map) {
+            const targetNode = map.nodes.find(n => Math.hypot(n.x - pt.x, n.y - pt.y) <= 25 && n.id !== edgeSourceNodeId);
+            if (targetNode) {
+                connectNodes(edgeSourceNodeId, targetNode.id);
+                edgeSourceNodeId = null;
+            }
+        }
+        isConnectingDrag = false;
+        renderCanvas();
+    }
+}
+
+function connectNodes(id1, id2) {
+    if (!id1 || !id2 || id1 === id2) return false;
+    const map = getActiveMap();
+    if (!map) return false;
+
+    // Check if edge already exists
+    const exists = map.edges.some(([a, b]) =>
+        (a === id1 && b === id2) || (a === id2 && b === id1)
+    );
+    if (exists) {
+        showToast(`Nodes ${id1} and ${id2} are already linked!`, "info");
+        return false;
+    }
+
+    map.edges.push([id1, id2]);
+    showToast(`Connected ${id1} ↔ ${id2}! Navigation path updated.`, "success");
+
+    // Recompute path for simulation immediately
+    agentState.plannedPath = computeShortestPath(agentState.startNodeId, agentState.goalNodeId);
+    updateMetricsDisplay();
+    updateMapStatsHeader();
+    populateLinkDropdowns();
+    renderCanvas();
+    syncMapToBackend(map);
+    schedule3DSceneRebuild();
+    return true;
+}
+
+function populateLinkDropdowns() {
+    const selA = document.getElementById("linkNodeASelect");
+    const selB = document.getElementById("linkNodeBSelect");
+    if (!selA || !selB) return;
+    const map = getActiveMap();
+    if (!map || !map.nodes) return;
+
+    const prevA = selA.value;
+    const prevB = selB.value;
+
+    selA.innerHTML = "";
+    selB.innerHTML = "";
+
+    if (map.nodes.length === 0) {
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "(No viewpoints)";
+        selA.appendChild(opt);
+        selB.appendChild(opt.cloneNode(true));
+        return;
+    }
+
+    map.nodes.forEach((n, idx) => {
+        const room = map.rooms.find(r => r.id === n.roomId);
+        const text = `${n.id} — ${room ? room.name : (n.label || "Node")}`;
+        
+        const optA = document.createElement("option");
+        optA.value = n.id;
+        optA.textContent = text;
+        selA.appendChild(optA);
+
+        const optB = document.createElement("option");
+        optB.value = n.id;
+        optB.textContent = text;
+        selB.appendChild(optB);
+    });
+
+    if (map.nodes.some(n => n.id === prevA)) selA.value = prevA;
+    else selA.selectedIndex = 0;
+
+    if (map.nodes.some(n => n.id === prevB)) selB.value = prevB;
+    else if (map.nodes.length > 1) selB.selectedIndex = 1;
+    else selB.selectedIndex = 0;
+}
+
+function linkNodesFromDropdown() {
+    const selA = document.getElementById("linkNodeASelect");
+    const selB = document.getElementById("linkNodeBSelect");
+    if (!selA || !selB) return;
+    const idA = selA.value;
+    const idB = selB.value;
+    if (!idA || !idB) {
+        showToast("Please add at least 2 viewpoint nodes to link.", "warn");
+        return;
+    }
+    if (idA === idB) {
+        showToast("Please choose two different viewpoint nodes to link.", "warn");
+        return;
+    }
+    connectNodes(idA, idB);
 }
 
 function updateSelectedEntityInspector() {
@@ -2386,12 +2546,60 @@ function createRoomAtPosition(cx, cy) {
         map.edges.push([nearestNode.id, newNodeId]);
     }
 
+    // Auto-initialize start and goal nodes for simulation if this is a newly created map
+    if (!agentState.startNodeId || map.nodes.length === 1) {
+        agentState.startNodeId = newNodeId;
+        agentState.goalNodeId = newNodeId;
+        agentState.currentNodeId = newNodeId;
+        agentState.x = nodeX;
+        agentState.y = nodeY;
+        agentState.targetX = nodeX;
+        agentState.targetY = nodeY;
+        syncAgentTo3DScene(true);
+    } else if (map.nodes.length >= 2) {
+        if (agentState.goalNodeId === agentState.startNodeId) {
+            agentState.goalNodeId = newNodeId;
+        }
+    }
+
+    // Generate starter preset if map doesn't have any
+    if (!map.presets || !map.presets.en || map.presets.en.length === 0) {
+        const startRoom = map.rooms[0]?.name || "Entrance";
+        const goalRoom = roomName;
+        map.presets = {
+            en: [{
+                title: `${startRoom} → ${goalRoom}`,
+                text: `Start in the ${startRoom}, follow the pathway through the hallway, and reach the ${goalRoom}.`,
+                start: agentState.startNodeId,
+                goal: agentState.goalNodeId
+            }],
+            hi: [{
+                title: `${startRoom} → ${goalRoom}`,
+                text: `${startRoom} से शुरू करें और ${goalRoom} में जाएं।`,
+                start: agentState.startNodeId,
+                goal: agentState.goalNodeId
+            }],
+            te: [{
+                title: `${startRoom} → ${goalRoom}`,
+                text: `${startRoom} నుండి ${goalRoom}కి వెళ్లండి.`,
+                start: agentState.startNodeId,
+                goal: agentState.goalNodeId
+            }]
+        };
+        populatePresetsDropdown();
+        applyPresetInstruction();
+    }
+
+    agentState.plannedPath = computeShortestPath(agentState.startNodeId, agentState.goalNodeId);
+    updateMetricsDisplay();
+
     document.getElementById("newRoomName").value = "";
     document.getElementById("newRoomLandmarks").value = "";
 
     updateMapStatsHeader();
     renderRoomsListInEditor();
     populateStartGoalDropdowns();
+    populateLinkDropdowns();
     renderCanvas();
     syncMapToBackend(map);
     rebuild3DMatterportScene();
@@ -2410,8 +2618,18 @@ function createNodeAtPosition(x, y) {
         label: enclosingRoom ? `${enclosingRoom.name} Node` : `Node ${newNodeId}`
     };
     map.nodes.push(newNode);
+
+    if (!agentState.startNodeId) {
+        agentState.startNodeId = newNodeId;
+        agentState.goalNodeId = newNodeId;
+    } else if (agentState.goalNodeId === agentState.startNodeId) {
+        agentState.goalNodeId = newNodeId;
+    }
+    agentState.plannedPath = computeShortestPath(agentState.startNodeId, agentState.goalNodeId);
+
     updateMapStatsHeader();
     populateStartGoalDropdowns();
+    populateLinkDropdowns();
     renderCanvas();
     syncMapToBackend(map);
     rebuild3DMatterportScene();
@@ -2436,7 +2654,10 @@ function autoConnectNearbyNodes() {
             }
         }
     }
+    agentState.plannedPath = computeShortestPath(agentState.startNodeId, agentState.goalNodeId);
+    updateMetricsDisplay();
     updateMapStatsHeader();
+    populateLinkDropdowns();
     renderCanvas();
     syncMapToBackend(map);
     rebuild3DMatterportScene();
