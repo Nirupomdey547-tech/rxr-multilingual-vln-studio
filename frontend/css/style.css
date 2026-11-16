@@ -1,9 +1,48 @@
 /* RxR Multilingual VLN Agent — Custom Map & Room Studio Styles */
 
+:root {
+    color-scheme: dark;
+}
+
 body {
     background-color: #080c17;
     color: #f1f5f9;
     overflow-x: hidden;
+}
+
+/* Explicit Dark Theme for Selects & Dropdown Option Menus */
+select {
+    color-scheme: dark !important;
+    background-color: #0f172a;
+    color: #f8fafc;
+}
+
+select option {
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
+    font-size: 13px;
+    padding: 8px 12px;
+}
+
+select option:checked {
+    background-color: #4f46e5 !important;
+    color: #ffffff !important;
+}
+
+select option:hover {
+    background-color: #312e81 !important;
+    color: #ffffff !important;
+}
+
+#mapSelector {
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
+    color-scheme: dark !important;
+}
+
+#mapSelector option {
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
 }
 
 .glass-panel {

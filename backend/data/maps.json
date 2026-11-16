@@ -180,6 +180,10 @@
       [
         "vp_3",
         "vp_7"
+      ],
+      [
+        "vp_1",
+        "vp_4"
       ]
     ],
     "presets": {
@@ -564,6 +568,114 @@
       ],
       [
         "vp_1",
+        "vp_3"
+      ]
+    ],
+    "presets": {
+      "en": [
+        {
+          "title": "Custom Room 1 → Custom Room 1",
+          "text": "Start in the Custom Room 1, follow the pathway through the hallway, and reach the Custom Room 1.",
+          "start": "vp_1",
+          "goal": "vp_1"
+        }
+      ],
+      "hi": [
+        {
+          "title": "Custom Room 1 → Custom Room 1",
+          "text": "Custom Room 1 से शुरू करें और Custom Room 1 में जाएं।",
+          "start": "vp_1",
+          "goal": "vp_1"
+        }
+      ],
+      "te": [
+        {
+          "title": "Custom Room 1 → Custom Room 1",
+          "text": "Custom Room 1 నుండి Custom Room 1కి వెళ్లండి.",
+          "start": "vp_1",
+          "goal": "vp_1"
+        }
+      ]
+    }
+  },
+  "custom_map_7149": {
+    "id": "custom_map_7149",
+    "name": "Custom VLN Environment 6",
+    "rooms": [
+      {
+        "id": "r_custom_1297",
+        "name": "Custom Room 1",
+        "x": 413,
+        "y": 194,
+        "w": 170,
+        "h": 130,
+        "color": "#6366f1",
+        "landmarks": [
+          "table",
+          "oven"
+        ]
+      },
+      {
+        "id": "r_custom_2947",
+        "name": "Custom Room 2",
+        "x": 228,
+        "y": 197,
+        "w": 170,
+        "h": 130,
+        "color": "#6366f1",
+        "landmarks": [
+          "table",
+          "bed"
+        ]
+      },
+      {
+        "id": "r_custom_2689",
+        "name": "Custom Room 3",
+        "x": 230,
+        "y": 355,
+        "w": 170,
+        "h": 130,
+        "color": "#6366f1",
+        "landmarks": [
+          "table",
+          "sofa"
+        ]
+      }
+    ],
+    "nodes": [
+      {
+        "id": "vp_1",
+        "x": 494,
+        "y": 261,
+        "roomId": "r_custom_1297",
+        "label": "Custom Room 1 Center"
+      },
+      {
+        "id": "vp_2",
+        "x": 313,
+        "y": 262,
+        "roomId": "r_custom_2947",
+        "label": "Custom Room 2 Center"
+      },
+      {
+        "id": "vp_3",
+        "x": 315,
+        "y": 420,
+        "roomId": "r_custom_2689",
+        "label": "Custom Room 3 Center"
+      }
+    ],
+    "edges": [
+      [
+        "vp_1",
+        "vp_2"
+      ],
+      [
+        "vp_1",
+        "vp_3"
+      ],
+      [
+        "vp_2",
         "vp_3"
       ]
     ],

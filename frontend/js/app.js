@@ -408,10 +408,16 @@ function populateMapSelector() {
     const sel = document.getElementById("mapSelector");
     if (!sel) return;
     sel.innerHTML = "";
+    sel.style.backgroundColor = "#0f172a";
+    sel.style.color = "#f8fafc";
+    sel.style.colorScheme = "dark";
+
     Object.values(mapsStore).forEach(m => {
         const opt = document.createElement("option");
         opt.value = m.id;
         opt.textContent = m.name;
+        opt.style.backgroundColor = "#0f172a";
+        opt.style.color = "#f8fafc";
         if (m.id === activeMapId) opt.selected = true;
         sel.appendChild(opt);
     });
@@ -1109,14 +1115,30 @@ function renderCanvas() {
     const showDoors2D = toggleDoorsEl ? toggleDoorsEl.checked : true;
     if (showDoors2D && threeState.doorPoints2D) {
         threeState.doorPoints2D.forEach(door => {
+            const isDoorSelected = selectedEntity && selectedEntity.type === "door" &&
+                ((selectedEntity.uId === door.uId && selectedEntity.vId === door.vId) ||
+                 (selectedEntity.uId === door.vId && selectedEntity.vId === door.uId));
+
             ctx.save();
             ctx.translate(door.x, door.y);
             ctx.rotate(door.angle || 0);
 
+            // Selection glow if door is selected
+            if (isDoorSelected) {
+                ctx.save();
+                ctx.strokeStyle = "#38bdf8";
+                ctx.lineWidth = 2.5;
+                ctx.fillStyle = "rgba(56, 189, 248, 0.28)";
+                roundRect(ctx, -20, -12, 40, 24, 6);
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+            }
+
             // Door threshold (golden floor plate)
-            ctx.fillStyle = "rgba(245, 158, 11, 0.35)";
-            ctx.strokeStyle = "#fbbf24";
-            ctx.lineWidth = 2;
+            ctx.fillStyle = isDoorSelected ? "rgba(56, 189, 248, 0.45)" : "rgba(245, 158, 11, 0.35)";
+            ctx.strokeStyle = isDoorSelected ? "#38bdf8" : "#fbbf24";
+            ctx.lineWidth = isDoorSelected ? 2.5 : 2;
             roundRect(ctx, -14, -5, 28, 10, 3);
             ctx.fill();
             ctx.stroke();
@@ -1125,7 +1147,7 @@ function renderCanvas() {
             ctx.beginPath();
             ctx.moveTo(-14, 0);
             ctx.lineTo(-6, -16);
-            ctx.strokeStyle = "#fef08a";
+            ctx.strokeStyle = isDoorSelected ? "#bae6fd" : "#fef08a";
             ctx.lineWidth = 2.5;
             ctx.stroke();
 
@@ -1133,16 +1155,16 @@ function renderCanvas() {
             ctx.beginPath();
             ctx.arc(-14, 0, 16, -Math.PI / 2, -Math.PI / 3);
             ctx.setLineDash([2, 3]);
-            ctx.strokeStyle = "rgba(251, 191, 36, 0.7)";
+            ctx.strokeStyle = isDoorSelected ? "rgba(56, 189, 248, 0.9)" : "rgba(251, 191, 36, 0.7)";
             ctx.lineWidth = 1.2;
             ctx.stroke();
 
             // Door badge text
             ctx.setLineDash([]);
-            ctx.fillStyle = "#fbbf24";
+            ctx.fillStyle = isDoorSelected ? "#38bdf8" : "#fbbf24";
             ctx.font = "bold 9px 'JetBrains Mono', monospace";
             ctx.textAlign = "center";
-            ctx.fillText("DOOR", 0, 15);
+            ctx.fillText(isDoorSelected ? "SELECTED" : "DOOR", 0, 15);
 
             ctx.restore();
         });
@@ -1537,7 +1559,17 @@ function rebuild3DMatterportScene() {
                     placedDoorKeys.add(key);
                     const dMesh = create3DDoorwayMesh(midX, midY, doorPlacements[0].orientation, u.id, v.id, roomU, roomV);
                     threeState.worldGroup.add(dMesh);
-                    threeState.doorPoints2D.push({ x: midX, y: midY, angle: doorPlacements[0].orientation === "vertical" ? Math.PI / 2 : 0 });
+                    threeState.doorPoints2D.push({
+                        x: midX,
+                        y: midY,
+                        angle: doorPlacements[0].orientation === "vertical" ? Math.PI / 2 : 0,
+                        uId: u.id,
+                        vId: v.id,
+                        roomUId: u.roomId,
+                        roomVId: v.roomId,
+                        roomUName: roomU ? roomU.name : u.roomId,
+                        roomVName: roomV ? roomV.name : v.roomId
+                    });
                 }
             } else if (doorPlacements.length > 0) {
                 doorPlacements.forEach(dp => {
@@ -1546,7 +1578,17 @@ function rebuild3DMatterportScene() {
                         placedDoorKeys.add(key);
                         const dMesh = create3DDoorwayMesh(dp.x, dp.y, dp.orientation, u.id, v.id, roomU, roomV);
                         threeState.worldGroup.add(dMesh);
-                        threeState.doorPoints2D.push({ x: dp.x, y: dp.y, angle: dp.orientation === "vertical" ? Math.PI / 2 : 0 });
+                        threeState.doorPoints2D.push({
+                            x: dp.x,
+                            y: dp.y,
+                            angle: dp.orientation === "vertical" ? Math.PI / 2 : 0,
+                            uId: u.id,
+                            vId: v.id,
+                            roomUId: u.roomId,
+                            roomVId: v.roomId,
+                            roomUName: roomU ? roomU.name : u.roomId,
+                            roomVName: roomV ? roomV.name : v.roomId
+                        });
                     }
                 });
             } else {
@@ -1560,7 +1602,17 @@ function rebuild3DMatterportScene() {
                     const orientation = isVertical ? "horizontal" : "vertical";
                     const dMesh = create3DDoorwayMesh(midX, midY, orientation, u.id, v.id, roomU, roomV);
                     threeState.worldGroup.add(dMesh);
-                    threeState.doorPoints2D.push({ x: midX, y: midY, angle: orientation === "vertical" ? Math.PI / 2 : 0 });
+                    threeState.doorPoints2D.push({
+                        x: midX,
+                        y: midY,
+                        angle: orientation === "vertical" ? Math.PI / 2 : 0,
+                        uId: u.id,
+                        vId: v.id,
+                        roomUId: u.roomId,
+                        roomVId: v.roomId,
+                        roomUName: roomU ? roomU.name : u.roomId,
+                        roomVName: roomV ? roomV.name : v.roomId
+                    });
                 }
             }
         });
@@ -1820,7 +1872,13 @@ function create3DDoorwayMesh(x2d, y2d, orientation, nodeUId, nodeVId, roomU, roo
         new THREE.MeshBasicMaterial({ visible: false })
     );
     hitBox.position.y = doorH / 2;
-    hitBox.userData = { doorBetween: [nodeUId, nodeVId] };
+    hitBox.userData = {
+        doorBetween: [nodeUId, nodeVId],
+        roomUId: roomU ? roomU.id : null,
+        roomVId: roomV ? roomV.id : null,
+        roomUName: roomU ? roomU.name : nodeUId,
+        roomVName: roomV ? roomV.name : nodeVId
+    };
     group.add(hitBox);
     threeState.clickableHotspots.push(hitBox);
 
@@ -2037,14 +2095,51 @@ function setup3DViewportInteractions(canvas) {
                 const hits = raycaster.intersectObjects(threeState.clickableHotspots, false);
                 if (hits.length > 0) {
                     const hitData = hits[0].object.userData;
-                    if (hitData.nodeId) {
-                        onClicked3DHotspot(hitData.nodeId, false, true);
-                    } else if (hitData.doorBetween) {
-                        const [uId, vId] = hitData.doorBetween;
-                        const nextId = (agentState.currentNodeId === uId) ? vId : uId;
-                        onClicked3DHotspot(nextId, false, false);
-                    } else if (hitData.roomId) {
-                        switchPanoramaToRoom(hitData.roomId);
+                    const map = getActiveMap();
+                    if (currentMode === "editor") {
+                        if (hitData.nodeId) {
+                            selectedEntity = { type: "node", id: hitData.nodeId };
+                            updateSelectedEntityInspector();
+                            renderRoomsListInEditor();
+                            renderCanvas();
+                            onClicked3DHotspot(hitData.nodeId, false, false);
+                        } else if (hitData.doorBetween) {
+                            const [uId, vId] = hitData.doorBetween;
+                            const nodeU = map ? map.nodes.find(n => n.id === uId) : null;
+                            const nodeV = map ? map.nodes.find(n => n.id === vId) : null;
+                            const roomU = nodeU && map ? map.rooms.find(r => r.id === nodeU.roomId) : null;
+                            const roomV = nodeV && map ? map.rooms.find(r => r.id === nodeV.roomId) : null;
+                            selectedEntity = {
+                                type: "door",
+                                id: `${uId}_${vId}`,
+                                uId,
+                                vId,
+                                roomUId: hitData.roomUId || (nodeU ? nodeU.roomId : null),
+                                roomVId: hitData.roomVId || (nodeV ? nodeV.roomId : null),
+                                roomUName: hitData.roomUName || (roomU ? roomU.name : uId),
+                                roomVName: hitData.roomVName || (roomV ? roomV.name : vId)
+                            };
+                            updateSelectedEntityInspector();
+                            renderRoomsListInEditor();
+                            renderCanvas();
+                        } else if (hitData.roomId) {
+                            selectedEntity = { type: "room", id: hitData.roomId };
+                            updateSelectedEntityInspector();
+                            renderRoomsListInEditor();
+                            renderCanvas();
+                            switchPanoramaToRoom(hitData.roomId);
+                        }
+                    } else {
+                        // simulator mode
+                        if (hitData.nodeId) {
+                            onClicked3DHotspot(hitData.nodeId, false, true);
+                        } else if (hitData.doorBetween) {
+                            const [uId, vId] = hitData.doorBetween;
+                            const nextId = (agentState.currentNodeId === uId) ? vId : uId;
+                            onClicked3DHotspot(nextId, false, false);
+                        } else if (hitData.roomId) {
+                            switchPanoramaToRoom(hitData.roomId);
+                        }
                     }
                 }
             }
@@ -2348,14 +2443,35 @@ function onCanvasPointerDown(e) {
         return;
     }
 
-    const hitNode = map.nodes.find(n => Math.hypot(n.x - pt.x, n.y - pt.y) <= 20);
+    const hitNode = map.nodes.find(n => Math.hypot(n.x - pt.x, n.y - pt.y) <= 22);
     if (hitNode) {
         selectedEntity = { type: "node", id: hitNode.id };
         dragTarget = { type: "node", id: hitNode.id, offsetX: pt.x - hitNode.x, offsetY: pt.y - hitNode.y };
         onClicked3DHotspot(hitNode.id, false);
         updateSelectedEntityInspector();
+        renderRoomsListInEditor();
         renderCanvas();
         return;
+    }
+
+    if (threeState.doorPoints2D && threeState.doorPoints2D.length > 0) {
+        const hitDoor = threeState.doorPoints2D.find(d => Math.hypot(d.x - pt.x, d.y - pt.y) <= 22);
+        if (hitDoor) {
+            selectedEntity = {
+                type: "door",
+                id: `${hitDoor.uId}_${hitDoor.vId}`,
+                uId: hitDoor.uId,
+                vId: hitDoor.vId,
+                roomUId: hitDoor.roomUId,
+                roomVId: hitDoor.roomVId,
+                roomUName: hitDoor.roomUName,
+                roomVName: hitDoor.roomVName
+            };
+            updateSelectedEntityInspector();
+            renderRoomsListInEditor();
+            renderCanvas();
+            return;
+        }
     }
 
     for (let i = map.rooms.length - 1; i >= 0; i--) {
@@ -2365,6 +2481,7 @@ function onCanvasPointerDown(e) {
             dragTarget = { type: "room", id: r.id, offsetX: pt.x - r.x, offsetY: pt.y - r.y };
             switchPanoramaToRoom(r.id);
             updateSelectedEntityInspector();
+            renderRoomsListInEditor();
             renderCanvas();
             return;
         }
@@ -2372,6 +2489,7 @@ function onCanvasPointerDown(e) {
 
     selectedEntity = null;
     updateSelectedEntityInspector();
+    renderRoomsListInEditor();
     renderCanvas();
 }
 
@@ -2551,25 +2669,82 @@ function linkNodesFromDropdown() {
 
 function updateSelectedEntityInspector() {
     const box = document.getElementById("selectedEntityBox");
+    const sidebarDeleteBtn = document.getElementById("sidebarDeleteBtn");
+    const sidebarDeleteBtnText = document.getElementById("sidebarDeleteBtnText");
+    const sidebarSelTitle = document.getElementById("sidebarSelTitle");
+    const sidebarSelSubtitle = document.getElementById("sidebarSelSubtitle");
+    const sidebarSelTypeBadge = document.getElementById("sidebarSelTypeBadge");
+
     if (!selectedEntity || currentMode !== "editor") {
-        box.classList.add("hidden");
+        if (box) box.classList.add("hidden");
+        if (sidebarDeleteBtn) {
+            sidebarDeleteBtn.classList.add("hidden");
+            sidebarDeleteBtn.classList.remove("flex");
+        }
+        if (sidebarSelTitle) sidebarSelTitle.textContent = "No Item Selected";
+        if (sidebarSelSubtitle) sidebarSelSubtitle.textContent = "Click any room, viewpoint node, or door to inspect or delete.";
+        if (sidebarSelTypeBadge) sidebarSelTypeBadge.innerHTML = '<i class="fa-solid fa-hand-pointer text-indigo-400"></i> Selection Inspector';
         return;
     }
+
     const map = getActiveMap();
     if (!map) return;
-    box.classList.remove("hidden");
+
+    if (box) box.classList.remove("hidden");
+    if (sidebarDeleteBtn) {
+        sidebarDeleteBtn.classList.remove("hidden");
+        sidebarDeleteBtn.classList.add("flex");
+    }
+
     if (selectedEntity.type === "room") {
         const r = map.rooms.find(rm => rm.id === selectedEntity.id);
         if (r) {
-            document.getElementById("selEntityTitle").textContent = `Room: ${r.name}`;
-            document.getElementById("selEntitySub").textContent = `Pos: (${r.x}, ${r.y}) • Size: ${r.w}×${r.h}px`;
+            const nodeCount = map.nodes.filter(n => n.roomId === r.id).length;
+            const title = `Room: ${r.name}`;
+            const sub = `Size: ${r.w}×${r.h}px • Nodes: ${nodeCount} • Landmarks: ${(r.landmarks || []).join(", ") || "None"}`;
+
+            if (box) {
+                document.getElementById("selEntityTitle").textContent = title;
+                document.getElementById("selEntitySub").textContent = sub;
+            }
+            if (sidebarSelTitle) sidebarSelTitle.textContent = title;
+            if (sidebarSelSubtitle) sidebarSelSubtitle.textContent = sub;
+            if (sidebarSelTypeBadge) sidebarSelTypeBadge.innerHTML = '<i class="fa-solid fa-vector-square text-emerald-400"></i> Room Selected';
+            if (sidebarDeleteBtnText) sidebarDeleteBtnText.textContent = "Delete Room";
         }
     } else if (selectedEntity.type === "node") {
         const n = map.nodes.find(nd => nd.id === selectedEntity.id);
         if (n) {
-            document.getElementById("selEntityTitle").textContent = `Viewpoint: ${n.id}`;
-            document.getElementById("selEntitySub").textContent = `Pos: (${n.x}, ${n.y}) • Room: ${n.roomId}`;
+            const room = map.rooms.find(r => r.id === n.roomId);
+            const edgeCount = map.edges.filter(([u, v]) => u === n.id || v === n.id).length;
+            const title = `Viewpoint Node: ${n.id}`;
+            const sub = `Room: ${room ? room.name : "Unassigned"} • Pos: (${Math.round(n.x)}, ${Math.round(n.y)}) • Edges: ${edgeCount}`;
+
+            if (box) {
+                document.getElementById("selEntityTitle").textContent = title;
+                document.getElementById("selEntitySub").textContent = sub;
+            }
+            if (sidebarSelTitle) sidebarSelTitle.textContent = title;
+            if (sidebarSelSubtitle) sidebarSelSubtitle.textContent = sub;
+            if (sidebarSelTypeBadge) sidebarSelTypeBadge.innerHTML = '<i class="fa-solid fa-location-dot text-cyan-400"></i> Node Selected';
+            if (sidebarDeleteBtnText) sidebarDeleteBtnText.textContent = "Delete Node";
         }
+    } else if (selectedEntity.type === "door") {
+        const roomU = selectedEntity.roomUId ? map.rooms.find(r => r.id === selectedEntity.roomUId) : null;
+        const roomV = selectedEntity.roomVId ? map.rooms.find(r => r.id === selectedEntity.roomVId) : null;
+        const uName = roomU ? roomU.name : (selectedEntity.roomUName || selectedEntity.uId);
+        const vName = roomV ? roomV.name : (selectedEntity.roomVName || selectedEntity.vId);
+        const title = `Doorway: ${uName} ↔ ${vName}`;
+        const sub = `Connects ${selectedEntity.uId} & ${selectedEntity.vId} • Deleting door will unlink rooms`;
+
+        if (box) {
+            document.getElementById("selEntityTitle").textContent = title;
+            document.getElementById("selEntitySub").textContent = sub;
+        }
+        if (sidebarSelTitle) sidebarSelTitle.textContent = title;
+        if (sidebarSelSubtitle) sidebarSelSubtitle.textContent = sub;
+        if (sidebarSelTypeBadge) sidebarSelTypeBadge.innerHTML = '<i class="fa-solid fa-door-open text-amber-400"></i> Doorway Selected';
+        if (sidebarDeleteBtnText) sidebarDeleteBtnText.textContent = "Delete Door & Unlink";
     }
 }
 
@@ -2577,18 +2752,76 @@ function deleteSelectedEntity() {
     if (!selectedEntity) return;
     const map = getActiveMap();
     if (!map) return;
+
     if (selectedEntity.type === "room") {
         removeRoomById(selectedEntity.id);
     } else if (selectedEntity.type === "node") {
-        const nid = selectedEntity.id;
-        map.nodes = map.nodes.filter(n => n.id !== nid);
-        map.edges = map.edges.filter(([u, v]) => u !== nid && v !== nid);
-        updateMapStatsHeader();
-        populateStartGoalDropdowns();
-        showToast(`Deleted viewpoint ${nid}`, "warn");
+        removeNodeById(selectedEntity.id);
+    } else if (selectedEntity.type === "door") {
+        removeDoor(selectedEntity.uId, selectedEntity.vId, selectedEntity.roomUId, selectedEntity.roomVId);
     }
+}
+
+function removeNodeById(nodeId) {
+    const map = getActiveMap();
+    if (!map) return;
+
+    map.nodes = map.nodes.filter(n => n.id !== nodeId);
+    map.edges = map.edges.filter(([u, v]) => u !== nodeId && v !== nodeId);
+
+    if (agentState.currentNodeId === nodeId && map.nodes.length > 0) {
+        agentState.currentNodeId = map.nodes[0].id;
+        agentState.x = map.nodes[0].x;
+        agentState.y = map.nodes[0].y;
+    }
+
+    showToast(`Deleted viewpoint node ${nodeId}`, "warn");
     selectedEntity = null;
     updateSelectedEntityInspector();
+    updateMapStatsHeader();
+    populateLinkDropdowns();
+    populateStartGoalDropdowns();
+    renderRoomsListInEditor();
+    renderCanvas();
+    syncMapToBackend(map);
+    rebuild3DMatterportScene();
+}
+
+function removeDoor(uId, vId, roomUId, roomVId) {
+    const map = getActiveMap();
+    if (!map) return;
+
+    // Filter out edge(s) connecting these two nodes or connecting the two rooms
+    map.edges = map.edges.filter(([u, v]) => {
+        const matchesExact = (u === uId && v === vId) || (u === vId && v === uId);
+        if (matchesExact) return false;
+        if (roomUId && roomVId) {
+            const nodeU = map.nodes.find(n => n.id === u);
+            const nodeV = map.nodes.find(n => n.id === v);
+            if (nodeU && nodeV) {
+                const matchesRooms = (nodeU.roomId === roomUId && nodeV.roomId === roomVId) ||
+                                     (nodeU.roomId === roomVId && nodeV.roomId === roomUId);
+                if (matchesRooms) return false;
+            }
+        }
+        return true;
+    });
+
+    const roomU = roomUId ? map.rooms.find(r => r.id === roomUId) : null;
+    const roomV = roomVId ? map.rooms.find(r => r.id === roomVId) : null;
+    const uName = roomU ? roomU.name : (roomUId || uId);
+    const vName = roomV ? roomV.name : (roomVId || vId);
+
+    showToast(`🚪 Door between ${uName} and ${vName} deleted. Rooms unlinked!`, "warn");
+    appendActionLog(`[DOORWAY REMOVED] Door between ${uName} ↔ ${vName} deleted. Inter-room travel blocked.`);
+
+    selectedEntity = null;
+    updateSelectedEntityInspector();
+    updateMapStatsHeader();
+    populateLinkDropdowns();
+    populateStartGoalDropdowns();
+    renderQuickRoomJumpBar();
+    renderRoomsListInEditor();
     renderCanvas();
     syncMapToBackend(map);
     rebuild3DMatterportScene();
@@ -2775,29 +3008,150 @@ function autoConnectNearbyNodes() {
     showToast(`Auto-linked ${added} nearby viewpoint pairs!`, "success");
 }
 
+let editorElementsTab = "rooms"; // "rooms" | "nodes" | "doors"
+
+function setEditorElementsTab(tab) {
+    editorElementsTab = tab;
+    ["rooms", "nodes", "doors"].forEach(t => {
+        const btn = document.getElementById(`elemTab-${t}`);
+        if (btn) {
+            if (t === tab) {
+                btn.className = "py-1 px-1.5 rounded-lg text-[11px] font-semibold bg-indigo-600 text-white transition flex items-center justify-center gap-1 shadow";
+            } else {
+                btn.className = "py-1 px-1.5 rounded-lg text-[11px] font-semibold text-slate-400 hover:text-white transition flex items-center justify-center gap-1";
+            }
+        }
+    });
+    renderRoomsListInEditor();
+}
+
 function renderRoomsListInEditor() {
     const map = getActiveMap();
     const container = document.getElementById("roomsListContainer");
     if (!container || !map) return;
     container.innerHTML = "";
 
-    map.rooms.forEach(r => {
-        const item = document.createElement("div");
-        item.className = "flex items-center justify-between bg-slate-900/85 border border-slate-800 rounded-xl px-3 py-2 text-xs";
-        item.innerHTML = `
-            <div class="flex items-center gap-2 min-w-0">
-                <span class="w-3 h-3 rounded-full shrink-0" style="background-color: ${r.color || '#6366f1'}"></span>
-                <div class="truncate">
-                    <p class="font-semibold text-slate-200 truncate">${r.name}</p>
-                    <p class="text-[10px] text-slate-400 truncate">${(r.landmarks || []).join(", ") || "No landmarks"}</p>
+    // Update count labels
+    const roomCountEl = document.getElementById("roomCountLabel");
+    const nodeCountEl = document.getElementById("nodeCountLabel");
+    const doorCountEl = document.getElementById("doorCountLabel");
+    if (roomCountEl) roomCountEl.textContent = map.rooms.length;
+    if (nodeCountEl) nodeCountEl.textContent = map.nodes.length;
+    const doorCount = (threeState.doorPoints2D || []).length;
+    if (doorCountEl) doorCountEl.textContent = doorCount;
+
+    if (editorElementsTab === "rooms") {
+        if (map.rooms.length === 0) {
+            container.innerHTML = '<p class="text-xs text-slate-500 italic p-3 text-center">No rooms in this map. Click "Insert Room" above.</p>';
+            return;
+        }
+        map.rooms.forEach(r => {
+            const isSelected = selectedEntity && selectedEntity.type === "room" && selectedEntity.id === r.id;
+            const item = document.createElement("div");
+            item.className = `flex items-center justify-between border rounded-xl px-3 py-2 text-xs transition cursor-pointer ${
+                isSelected ? "bg-indigo-900/40 border-indigo-500 shadow" : "bg-slate-900/85 border-slate-800 hover:border-slate-700"
+            }`;
+            item.onclick = (e) => {
+                if (e.target.closest("button")) return;
+                selectedEntity = { type: "room", id: r.id };
+                switchPanoramaToRoom(r.id);
+                updateSelectedEntityInspector();
+                renderCanvas();
+                renderRoomsListInEditor();
+            };
+            item.innerHTML = `
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="w-3 h-3 rounded-full shrink-0" style="background-color: ${r.color || '#6366f1'}"></span>
+                    <div class="truncate">
+                        <p class="font-semibold text-slate-200 truncate">${r.name}</p>
+                        <p class="text-[10px] text-slate-400 truncate">${(r.landmarks || []).join(", ") || "No landmarks"}</p>
+                    </div>
                 </div>
-            </div>
-            <button onclick="removeRoomById('${r.id}')" class="text-slate-400 hover:text-rose-400 px-2 py-1 transition" title="Delete Room">
-                <i class="fa-solid fa-trash-can"></i>
-            </button>
-        `;
-        container.appendChild(item);
-    });
+                <button onclick="removeRoomById('${r.id}')" class="text-slate-400 hover:text-rose-400 px-2 py-1 transition rounded hover:bg-rose-500/10" title="Delete Room">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            `;
+            container.appendChild(item);
+        });
+    } else if (editorElementsTab === "nodes") {
+        if (map.nodes.length === 0) {
+            container.innerHTML = '<p class="text-xs text-slate-500 italic p-3 text-center">No viewpoint nodes on map. Click "Add Node" tool above.</p>';
+            return;
+        }
+        map.nodes.forEach(n => {
+            const room = map.rooms.find(r => r.id === n.roomId);
+            const isSelected = selectedEntity && selectedEntity.type === "node" && selectedEntity.id === n.id;
+            const item = document.createElement("div");
+            item.className = `flex items-center justify-between border rounded-xl px-3 py-2 text-xs transition cursor-pointer ${
+                isSelected ? "bg-cyan-900/40 border-cyan-500 shadow" : "bg-slate-900/85 border-slate-800 hover:border-slate-700"
+            }`;
+            item.onclick = (e) => {
+                if (e.target.closest("button")) return;
+                selectedEntity = { type: "node", id: n.id };
+                onClicked3DHotspot(n.id, false, false);
+                updateSelectedEntityInspector();
+                renderCanvas();
+                renderRoomsListInEditor();
+            };
+            item.innerHTML = `
+                <div class="flex items-center gap-2 min-w-0">
+                    <i class="fa-solid fa-location-dot text-cyan-400 shrink-0 text-sm"></i>
+                    <div class="truncate">
+                        <p class="font-semibold text-slate-200 truncate font-mono">${n.id} ${n.id === agentState.currentNodeId ? '<span class="text-[10px] text-emerald-400 font-sans ml-1">(Agent Here)</span>' : ''}</p>
+                        <p class="text-[10px] text-slate-400 truncate">${room ? room.name : "Unassigned Room"} • (${Math.round(n.x)}, ${Math.round(n.y)})</p>
+                    </div>
+                </div>
+                <button onclick="removeNodeById('${n.id}')" class="text-slate-400 hover:text-rose-400 px-2 py-1 transition rounded hover:bg-rose-500/10" title="Delete Viewpoint Node">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            `;
+            container.appendChild(item);
+        });
+    } else if (editorElementsTab === "doors") {
+        const doors = threeState.doorPoints2D || [];
+        if (doors.length === 0) {
+            container.innerHTML = '<p class="text-xs text-slate-500 italic p-3 text-center">No doorways between rooms. Link two nodes across different rooms to create a door.</p>';
+            return;
+        }
+        doors.forEach(door => {
+            const isSelected = selectedEntity && selectedEntity.type === "door" &&
+                ((selectedEntity.uId === door.uId && selectedEntity.vId === door.vId) ||
+                 (selectedEntity.uId === door.vId && selectedEntity.vId === door.uId));
+            const item = document.createElement("div");
+            item.className = `flex items-center justify-between border rounded-xl px-3 py-2 text-xs transition cursor-pointer ${
+                isSelected ? "bg-amber-900/40 border-amber-500 shadow" : "bg-slate-900/85 border-slate-800 hover:border-slate-700"
+            }`;
+            item.onclick = (e) => {
+                if (e.target.closest("button")) return;
+                selectedEntity = {
+                    type: "door",
+                    id: `${door.uId}_${door.vId}`,
+                    uId: door.uId,
+                    vId: door.vId,
+                    roomUId: door.roomUId,
+                    roomVId: door.roomVId,
+                    roomUName: door.roomUName,
+                    roomVName: door.roomVName
+                };
+                updateSelectedEntityInspector();
+                renderCanvas();
+                renderRoomsListInEditor();
+            };
+            item.innerHTML = `
+                <div class="flex items-center gap-2 min-w-0">
+                    <i class="fa-solid fa-door-open text-amber-400 shrink-0 text-sm"></i>
+                    <div class="truncate">
+                        <p class="font-semibold text-slate-200 truncate">${door.roomUName || door.roomUId} ↔ ${door.roomVName || door.roomVId}</p>
+                        <p class="text-[10px] text-amber-300/80 truncate font-mono">Nodes ${door.uId} ↔ ${door.vId}</p>
+                    </div>
+                </div>
+                <button onclick="removeDoor('${door.uId}', '${door.vId}', '${door.roomUId}', '${door.roomVId}')" class="text-slate-400 hover:text-rose-400 px-2 py-1 transition rounded hover:bg-rose-500/10" title="Delete Door & Unlink Rooms">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            `;
+            container.appendChild(item);
+        });
+    }
 }
 
 function removeRoomById(roomId) {
@@ -2808,13 +3162,23 @@ function removeRoomById(roomId) {
     map.nodes = map.nodes.filter(n => n.roomId !== roomId);
     map.edges = map.edges.filter(([u, v]) => !removedNodeIds.has(u) && !removedNodeIds.has(v));
 
+    if (removedNodeIds.has(agentState.currentNodeId) && map.nodes.length > 0) {
+        agentState.currentNodeId = map.nodes[0].id;
+        agentState.x = map.nodes[0].x;
+        agentState.y = map.nodes[0].y;
+    }
+
+    selectedEntity = null;
+    updateSelectedEntityInspector();
     updateMapStatsHeader();
     renderRoomsListInEditor();
+    populateLinkDropdowns();
     populateStartGoalDropdowns();
+    renderQuickRoomJumpBar();
     renderCanvas();
     syncMapToBackend(map);
     rebuild3DMatterportScene();
-    showToast("Room and associated 3D meshes deleted.", "warn");
+    showToast("Room, associated nodes, and doorway portals deleted.", "warn");
 }
 
 /***********************************************************************
@@ -2936,3 +3300,17 @@ function hexToRgba(hex, alpha) {
     const b = bigint & 255;
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
+
+// Global Keyboard Shortcut: Delete or Backspace removes currently selected room, node, or door
+window.addEventListener("keydown", (e) => {
+    if (e.key === "Delete" || e.key === "Backspace") {
+        const activeTag = document.activeElement ? document.activeElement.tagName.toUpperCase() : "";
+        if (activeTag === "INPUT" || activeTag === "TEXTAREA" || activeTag === "SELECT") {
+            return;
+        }
+        if (selectedEntity && currentMode === "editor") {
+            e.preventDefault();
+            deleteSelectedEntity();
+        }
+    }
+});

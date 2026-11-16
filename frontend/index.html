@@ -63,7 +63,7 @@
                 <div class="flex items-center bg-slate-900/90 border border-slate-700/70 rounded-xl px-3 py-1.5 gap-2">
                     <i class="fa-solid fa-map-location-dot text-indigo-400 text-xs"></i>
                     <span class="text-xs text-slate-400">Map:</span>
-                    <select id="mapSelector" class="bg-transparent text-xs sm:text-sm font-medium text-white focus:outline-none cursor-pointer pr-2">
+                    <select id="mapSelector" class="bg-slate-900 text-xs sm:text-sm font-semibold text-white focus:outline-none cursor-pointer pr-2 rounded py-0.5" style="color-scheme: dark; background-color: #0f172a; color: #f8fafc;">
                     </select>
                 </div>
 
@@ -258,22 +258,40 @@
                     </p>
 
                     <!-- Quick Node Linker Dropdown Tool -->
-                    <div id="quickLinkPanel" class="mt-2.5 p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-col gap-2">
+                    <div id="quickLinkPanel" class="mt-2.5 p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-col gap-2.5">
                         <div class="flex items-center justify-between">
                             <span class="text-[11px] font-semibold text-amber-300 flex items-center gap-1.5">
                                 <i class="fa-solid fa-bezier-curve"></i>
-                                Link Viewpoints
+                                Link Viewpoints & Create Door
                             </span>
                             <span id="activeLinkIndicator" class="text-[10px] font-mono text-slate-400">Click or Pick</span>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <select id="linkNodeASelect" class="flex-1 bg-slate-950 border border-slate-700/80 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-amber-400"></select>
-                            <i class="fa-solid fa-arrows-left-right text-slate-500 text-xs shrink-0"></i>
-                            <select id="linkNodeBSelect" class="flex-1 bg-slate-950 border border-slate-700/80 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-amber-400"></select>
-                            <button onclick="linkNodesFromDropdown()" class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md transition shrink-0" title="Connect Selected Nodes">
-                                Link
+                        <div class="flex flex-col gap-2">
+                            <div class="flex items-center gap-1.5 w-full">
+                                <select id="linkNodeASelect" class="min-w-0 flex-1 bg-slate-950 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-400 truncate"></select>
+                                <span class="text-slate-400 text-xs shrink-0 font-bold px-0.5">↔</span>
+                                <select id="linkNodeBSelect" class="min-w-0 flex-1 bg-slate-950 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-400 truncate"></select>
+                            </div>
+                            <button onclick="linkNodesFromDropdown()" class="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5" title="Connect Selected Nodes and Create Door">
+                                <i class="fa-solid fa-link"></i>
+                                <span>Link Nodes & Place Door</span>
                             </button>
                         </div>
+                    </div>
+
+                    <!-- Active Selected Entity Inspector (Room / Node / Door) -->
+                    <div id="sidebarSelectedEntityCard" class="mt-2.5 p-3 rounded-xl border border-slate-800 bg-slate-900/90 flex flex-col gap-2">
+                        <div class="flex items-center justify-between">
+                            <span id="sidebarSelTypeBadge" class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                                <i class="fa-solid fa-hand-pointer text-indigo-400"></i> Selection Inspector
+                            </span>
+                            <button id="sidebarDeleteBtn" onclick="deleteSelectedEntity()" class="hidden px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500 border border-rose-500/40 text-rose-300 hover:text-white text-xs font-semibold items-center gap-1.5 transition">
+                                <i class="fa-solid fa-trash-can"></i>
+                                <span id="sidebarDeleteBtnText">Delete</span>
+                            </button>
+                        </div>
+                        <h4 id="sidebarSelTitle" class="text-xs font-bold text-slate-200">No Item Selected</h4>
+                        <p id="sidebarSelSubtitle" class="text-[11px] text-slate-400 font-mono">Click any room, viewpoint node, or door to inspect or delete.</p>
                     </div>
                 </div>
 
@@ -324,16 +342,33 @@
                     </button>
                 </div>
 
-                <!-- Existing Rooms List in Current Map -->
+                <!-- Existing Map Elements List: Rooms, Viewpoint Nodes & Doors -->
                 <div class="flex flex-col gap-2">
                     <div class="flex items-center justify-between">
-                        <span class="text-xs font-medium text-slate-300">Rooms in Current Map (<span id="roomCountLabel">0</span>)</span>
+                        <span class="text-xs font-medium text-slate-300">Map Elements</span>
                         <button onclick="autoConnectNearbyNodes()" class="text-[11px] text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Link Graph
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Link
                         </button>
                     </div>
-                    <div id="roomsListContainer" class="max-h-52 overflow-y-auto custom-scrollbar flex flex-col gap-2 pr-1">
-                        <!-- Populated dynamically -->
+
+                    <!-- Element Tabs: Rooms | Nodes | Doors -->
+                    <div class="grid grid-cols-3 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-center">
+                        <button id="elemTab-rooms" onclick="setEditorElementsTab('rooms')" class="py-1 px-1.5 rounded-lg text-[11px] font-semibold bg-indigo-600 text-white transition flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-vector-square text-[10px]"></i>
+                            <span>Rooms (<span id="roomCountLabel">0</span>)</span>
+                        </button>
+                        <button id="elemTab-nodes" onclick="setEditorElementsTab('nodes')" class="py-1 px-1.5 rounded-lg text-[11px] font-semibold text-slate-400 hover:text-white transition flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-location-dot text-[10px] text-cyan-400"></i>
+                            <span>Nodes (<span id="nodeCountLabel">0</span>)</span>
+                        </button>
+                        <button id="elemTab-doors" onclick="setEditorElementsTab('doors')" class="py-1 px-1.5 rounded-lg text-[11px] font-semibold text-slate-400 hover:text-white transition flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-door-open text-[10px] text-amber-400"></i>
+                            <span>Doors (<span id="doorCountLabel">0</span>)</span>
+                        </button>
+                    </div>
+
+                    <div id="roomsListContainer" class="max-h-52 overflow-y-auto custom-scrollbar flex flex-col gap-1.5 pr-1">
+                        <!-- Populated dynamically based on selected tab -->
                     </div>
                 </div>
             </div>
