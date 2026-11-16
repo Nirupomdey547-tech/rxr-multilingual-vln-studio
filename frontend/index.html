@@ -295,11 +295,31 @@
                     </div>
                 </div>
 
-                <!-- Build Room Form -->
+                <!-- Dedicated Option: Add Map to VLN Simulator -->
+                <div id="publishToSimCard" class="glass-card rounded-xl p-3.5 border border-indigo-500/40 bg-gradient-to-br from-indigo-950/60 via-purple-950/40 to-slate-900/80 flex flex-col gap-2.5 shadow-lg">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-robot text-cyan-400 text-sm"></i>
+                            <span class="font-bold text-xs text-white">Simulator Deployment</span>
+                        </div>
+                        <span id="mapSimStatusBadge" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                            Draft (Not in Simulator)
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-300">
+                        Adds this custom map into the VLN Simulator. If not manually added, the simulator will not load this map.
+                    </p>
+                    <button onclick="addCurrentMapToSimulator()" id="btnAddMapToSim" class="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-bold text-xs shadow-md shadow-indigo-600/30 flex items-center justify-center gap-2 transition">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <span id="btnAddMapToSimText">Add Map to VLN Simulator</span>
+                    </button>
+                </div>
+
+                <!-- Create / Configure Room Form -->
                 <div class="glass-card rounded-xl p-3.5 border border-slate-800 flex flex-col gap-3">
                     <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center justify-between">
-                        <span>Build Room</span>
-                        <span class="text-[10px] font-normal text-slate-400">Configure & Add to Map</span>
+                        <span>Create / Configure Room</span>
+                        <span class="text-[10px] font-normal text-slate-400">Click "Add Room" or button below</span>
                     </h3>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -336,9 +356,9 @@
                         <input id="newRoomLandmarks" type="text" placeholder="e.g., Workbench, 3D Printer, Monitor" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
                     </div>
 
-                    <button onclick="addBuiltRoomToMap()" id="btnAddBuiltRoom" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition">
+                    <button onclick="addRoomDirectly()" id="btnAddRoomDirectly" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition">
                         <i class="fa-solid fa-plus-circle"></i>
-                        <span>Add Room to Map</span>
+                        <span>Insert Room + Auto-Waypoint on Map</span>
                     </button>
                 </div>
 

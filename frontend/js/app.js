@@ -281,6 +281,8 @@ async function loadMapsFromBackend() {
             const serverMaps = await resp.json();
             if (serverMaps && Object.keys(serverMaps).length > 0) {
                 mapsStore = serverMaps;
+                if (mapsStore["mp3d_house_a"]) mapsStore["mp3d_house_a"].addedToSimulator = true;
+                if (mapsStore["smart_campus_lab"]) mapsStore["smart_campus_lab"].addedToSimulator = true;
                 populateMapSelector();
                 if (!mapsStore[activeMapId]) {
                     activeMapId = Object.keys(mapsStore)[0];
@@ -404,6 +406,97 @@ function showToast(message, type = "info") {
     }, 3000);
 }
 
+function updateMapSimStatusBadge() {
+    const map = getActiveMap();
+    const badge = document.getElementById("mapSimStatusBadge");
+    const btnText = document.getElementById("btnAddMapToSimText");
+    const btn = document.getElementById("btnAddMapToSim");
+    if (!badge || !map) return;
+
+    if (map.addedToSimulator) {
+        badge.className = "px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
+        badge.textContent = "Active in Simulator";
+        if (btnText) btnText.textContent = "Re-Sync Map to Simulator";
+        if (btn) btn.className = "w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-bold text-xs shadow-md shadow-emerald-600/30 flex items-center justify-center gap-2 transition";
+    } else {
+        badge.className = "px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40";
+        badge.textContent = "Draft (Not in Simulator)";
+        if (btnText) btnText.textContent = "Add Map to VLN Simulator";
+        if (btn) btn.className = "w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-bold text-xs shadow-md shadow-indigo-600/30 flex items-center justify-center gap-2 transition";
+    }
+}
+
+function generateDefaultPresetsForMap(map) {
+    if (!map || !map.rooms || map.rooms.length === 0 || !map.nodes || map.nodes.length === 0) return;
+    const rStart = map.rooms[0];
+    const rGoal = map.rooms[map.rooms.length - 1];
+    const nStart = map.nodes.find(n => n.roomId === rStart.id) || map.nodes[0];
+    const nGoal = map.nodes.find(n => n.roomId === rGoal.id) || map.nodes[map.nodes.length - 1];
+
+    map.presets = {
+        en: [{
+            title: `${rStart.name} → ${rGoal.name}`,
+            text: `Start in the ${rStart.name}, follow the hallway corridor, and reach the ${rGoal.name}.`,
+            start: nStart.id,
+            goal: nGoal.id
+        }],
+        hi: [{
+            title: `${rStart.name} → ${rGoal.name}`,
+            text: `${rStart.name} से शुरू करें और ${rGoal.name} तक जाएं।`,
+            start: nStart.id,
+            goal: nGoal.id
+        }],
+        te: [{
+            title: `${rStart.name} → ${rGoal.name}`,
+            text: `${rStart.name} నుండి మొదలుపెట్టి ${rGoal.name} కి చేరుకోండి.`,
+            start: nStart.id,
+            goal: nGoal.id
+        }]
+    };
+}
+
+function addCurrentMapToSimulator() {
+    const map = getActiveMap();
+    if (!map) return;
+
+    if (!map.rooms || map.rooms.length === 0) {
+        showToast("Please add at least 1 room before adding this map to the simulator.", "warn");
+        return;
+    }
+    if (!map.nodes || map.nodes.length === 0) {
+        showToast("Please add at least 1 viewpoint node before adding this map to the simulator.", "warn");
+        return;
+    }
+
+    // Mark as added to simulator
+    map.addedToSimulator = true;
+
+    // Generate presets if empty
+    if (!map.presets || !map.presets.en || map.presets.en.length === 0) {
+        generateDefaultPresetsForMap(map);
+    }
+
+    if (!agentState.startNodeId || !map.nodes.some(n => n.id === agentState.startNodeId)) {
+        agentState.startNodeId = map.nodes[0].id;
+    }
+    if (!agentState.goalNodeId || !map.nodes.some(n => n.id === agentState.goalNodeId)) {
+        agentState.goalNodeId = map.nodes[map.nodes.length - 1].id;
+    }
+    agentState.currentNodeId = agentState.startNodeId;
+    agentState.executedNodes = [agentState.startNodeId];
+    agentState.plannedPath = computeShortestPath(agentState.startNodeId, agentState.goalNodeId);
+
+    updateMapSimStatusBadge();
+    populateMapSelector();
+    syncMapToBackend(map);
+    showToast(`🚀 Map "${map.name}" has been added to VLN Simulator!`, "success");
+    appendActionLog(`[DEPLOY] Map "${map.name}" added to VLN Simulator.`);
+
+    setTimeout(() => {
+        switchMode("simulator");
+    }, 400);
+}
+
 function populateMapSelector() {
     const sel = document.getElementById("mapSelector");
     if (!sel) return;
@@ -412,15 +505,28 @@ function populateMapSelector() {
     sel.style.color = "#f8fafc";
     sel.style.colorScheme = "dark";
 
-    Object.values(mapsStore).forEach(m => {
+    const allMaps = Object.values(mapsStore);
+    // In simulator mode, ONLY show maps that have been added to simulator
+    // In editor mode, show all maps so user can build any draft
+    const availableMaps = currentMode === "simulator"
+        ? allMaps.filter(m => m.addedToSimulator)
+        : allMaps;
+
+    availableMaps.forEach(m => {
         const opt = document.createElement("option");
         opt.value = m.id;
-        opt.textContent = m.name;
+        const tag = (currentMode === "editor" && !m.addedToSimulator) ? " [Draft]" : "";
+        opt.textContent = `${m.name}${tag}`;
         opt.style.backgroundColor = "#0f172a";
         opt.style.color = "#f8fafc";
         if (m.id === activeMapId) opt.selected = true;
         sel.appendChild(opt);
     });
+
+    if (availableMaps.length > 0 && !availableMaps.some(m => m.id === activeMapId)) {
+        loadMap(availableMaps[0].id);
+    }
+
     sel.onchange = (e) => loadMap(e.target.value);
 }
 
@@ -432,6 +538,7 @@ function loadMap(mapId) {
 
     document.getElementById("activeMapTitle").textContent = map.name;
     updateMapStatsHeader();
+    updateMapSimStatusBadge();
     populateStartGoalDropdowns();
     populatePresetsDropdown();
     populateLinkDropdowns();
@@ -555,6 +662,16 @@ function switchMode(mode) {
     const editPanel = document.getElementById("editorPanel");
 
     if (mode === "simulator") {
+        const map = getActiveMap();
+        // If the current map hasn't been added to simulator, switch to an added map
+        if (map && !map.addedToSimulator) {
+            const addedMap = Object.values(mapsStore).find(m => m.addedToSimulator);
+            if (addedMap) {
+                showToast(`"${map.name}" is in Draft mode. Loaded active simulator map "${addedMap.name}".`, "info");
+                loadMap(addedMap.id);
+            }
+        }
+
         simBtn.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-md shadow-indigo-600/30";
         editBtn.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 text-slate-400 hover:text-white";
         simPanel.classList.remove("hidden");
@@ -564,6 +681,7 @@ function switchMode(mode) {
         selectedEntity = null;
         edgeSourceNodeId = null;
         document.getElementById("selectedEntityBox").classList.add("hidden");
+        populateMapSelector();
         populateStartGoalDropdowns();
     } else {
         editBtn.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 bg-emerald-600 text-white shadow-md shadow-emerald-600/30";
@@ -573,6 +691,8 @@ function switchMode(mode) {
         simPanel.classList.add("hidden");
         simPanel.classList.remove("flex");
         set3DCameraMode("map2d");
+        populateMapSelector();
+        updateMapSimStatusBadge();
         renderRoomsListInEditor();
     }
     renderCanvas();

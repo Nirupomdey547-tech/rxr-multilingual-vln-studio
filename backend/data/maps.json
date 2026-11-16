@@ -809,5 +809,109 @@
         }
       ]
     }
+  },
+  "custom_map_5404": {
+    "id": "custom_map_5404",
+    "name": "Custom VLN Environment 8",
+    "rooms": [
+      {
+        "id": "r_custom_9595",
+        "name": "Custom Room 1",
+        "x": 334,
+        "y": 170,
+        "w": 170,
+        "h": 130,
+        "color": "#6366f1",
+        "landmarks": [
+          "table",
+          "bed"
+        ]
+      },
+      {
+        "id": "r_custom_0346",
+        "name": "Custom Room 2",
+        "x": 115,
+        "y": 170,
+        "w": 170,
+        "h": 130,
+        "color": "#6366f1",
+        "landmarks": [
+          "table",
+          "oven"
+        ]
+      },
+      {
+        "id": "r_custom_0033",
+        "name": "Custom Room 3",
+        "x": 114,
+        "y": 336,
+        "w": 170,
+        "h": 130,
+        "color": "#6366f1",
+        "landmarks": [
+          "table",
+          "sofa"
+        ]
+      }
+    ],
+    "nodes": [
+      {
+        "id": "vp_1",
+        "x": 419,
+        "y": 235,
+        "roomId": "r_custom_9595",
+        "label": "Custom Room 1 Center"
+      },
+      {
+        "id": "vp_2",
+        "x": 200,
+        "y": 235,
+        "roomId": "r_custom_0346",
+        "label": "Custom Room 2 Center"
+      },
+      {
+        "id": "vp_3",
+        "x": 199,
+        "y": 401,
+        "roomId": "r_custom_0033",
+        "label": "Custom Room 3 Center"
+      }
+    ],
+    "edges": [
+      [
+        "vp_1",
+        "vp_2"
+      ],
+      [
+        "vp_2",
+        "vp_3"
+      ]
+    ],
+    "presets": {
+      "en": [
+        {
+          "title": "Custom Room 1 → Custom Room 1",
+          "text": "Start in the Custom Room 1, follow the pathway through the hallway, and reach the Custom Room 1.",
+          "start": "vp_1",
+          "goal": "vp_1"
+        }
+      ],
+      "hi": [
+        {
+          "title": "Custom Room 1 → Custom Room 1",
+          "text": "Custom Room 1 से शुरू करें और Custom Room 1 में जाएं।",
+          "start": "vp_1",
+          "goal": "vp_1"
+        }
+      ],
+      "te": [
+        {
+          "title": "Custom Room 1 → Custom Room 1",
+          "text": "Custom Room 1 నుండి Custom Room 1కి వెళ్లండి.",
+          "start": "vp_1",
+          "goal": "vp_1"
+        }
+      ]
+    }
   }
 }
