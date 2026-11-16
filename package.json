@@ -1,0 +1,22 @@
+{
+  "name": "rxr-multilingual-vln-studio",
+  "version": "2.4.0",
+  "description": "Room-Across-Room (RxR) Multilingual Vision-and-Language Navigation Studio with Matterport3D Panoramas, Dollhouse View, and Interactive Topological Map Builder",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "python": "python main.py"
+  },
+  "keywords": [
+    "rxr",
+    "vln",
+    "matterport3d",
+    "vision-and-language-navigation",
+    "threejs",
+    "multilingual",
+    "robotics"
+  ],
+  "author": "Nirupam Dey",
+  "license": "MIT"
+}

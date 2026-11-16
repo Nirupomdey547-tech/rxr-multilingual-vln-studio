@@ -1,0 +1,261 @@
+{
+  "mp3d_house_a": {
+    "id": "mp3d_house_a",
+    "name": "Matterport3D House A (Residential)",
+    "rooms": [
+      {
+        "id": "r_living",
+        "name": "Living Room",
+        "name_hi": "बैठक कक्ष",
+        "name_te": "లివింగ్ రూమ్",
+        "x": 60,
+        "y": 50,
+        "w": 220,
+        "h": 160,
+        "color": "#6366f1",
+        "landmarks": ["Sofa", "Smart TV", "Coffee Table"]
+      },
+      {
+        "id": "r_hallway",
+        "name": "Central Hallway",
+        "name_hi": "गलियारा",
+        "name_te": "హాల్‌వే",
+        "x": 310,
+        "y": 120,
+        "w": 170,
+        "h": 150,
+        "color": "#8b5cf6",
+        "landmarks": ["Wall Painting", "Coat Rack"]
+      },
+      {
+        "id": "r_kitchen",
+        "name": "Kitchen",
+        "name_hi": "रसोईघर",
+        "name_te": "వంటగది",
+        "x": 520,
+        "y": 45,
+        "w": 210,
+        "h": 155,
+        "color": "#10b981",
+        "landmarks": ["Fridge", "Island Counter", "Oven"]
+      },
+      {
+        "id": "r_dining",
+        "name": "Dining Room",
+        "name_hi": "भोजन कक्ष",
+        "name_te": "డైనింగ్ రూమ్",
+        "x": 520,
+        "y": 235,
+        "w": 210,
+        "h": 150,
+        "color": "#f59e0b",
+        "landmarks": ["Dining Table", "Chandelier"]
+      },
+      {
+        "id": "r_bedroom",
+        "name": "Master Bedroom",
+        "name_hi": "शयनकक्ष",
+        "name_te": "బెడ్ రూమ్",
+        "x": 60,
+        "y": 245,
+        "w": 220,
+        "h": 145,
+        "color": "#ec4899",
+        "landmarks": ["King Bed", "Wardrobe", "Lamp"]
+      },
+      {
+        "id": "r_study",
+        "name": "Study Room",
+        "name_hi": "अध्ययन कक्ष",
+        "name_te": "స్టడీ రూమ్",
+        "x": 310,
+        "y": 295,
+        "w": 170,
+        "h": 110,
+        "color": "#06b6d4",
+        "landmarks": ["Bookshelf", "Study Desk"]
+      }
+    ],
+    "nodes": [
+      { "id": "vp_1", "x": 135, "y": 125, "roomId": "r_living", "label": "Living West" },
+      { "id": "vp_2", "x": 230, "y": 145, "roomId": "r_living", "label": "Living East" },
+      { "id": "vp_3", "x": 395, "y": 190, "roomId": "r_hallway", "label": "Hall Center" },
+      { "id": "vp_4", "x": 615, "y": 125, "roomId": "r_kitchen", "label": "Kitchen Main" },
+      { "id": "vp_5", "x": 620, "y": 310, "roomId": "r_dining", "label": "Dining Table" },
+      { "id": "vp_6", "x": 170, "y": 315, "roomId": "r_bedroom", "label": "Bedroom Center" },
+      { "id": "vp_7", "x": 395, "y": 350, "roomId": "r_study", "label": "Study Desk" }
+    ],
+    "edges": [
+      ["vp_1", "vp_2"],
+      ["vp_2", "vp_3"],
+      ["vp_3", "vp_4"],
+      ["vp_4", "vp_5"],
+      ["vp_3", "vp_5"],
+      ["vp_3", "vp_6"],
+      ["vp_1", "vp_6"],
+      ["vp_3", "vp_7"]
+    ],
+    "presets": {
+      "en": [
+        {
+          "title": "Living Room → Kitchen (via Hallway)",
+          "text": "Start in the Living Room near the Sofa, walk east into the Central Hallway, then turn left and stop inside the Kitchen near the Fridge.",
+          "start": "vp_1",
+          "goal": "vp_4"
+        },
+        {
+          "title": "Master Bedroom → Dining Room",
+          "text": "Exit the Master Bedroom, pass through the Central Hallway, and enter the Dining Room beside the Dining Table.",
+          "start": "vp_6",
+          "goal": "vp_5"
+        },
+        {
+          "title": "Kitchen → Study Room Desk",
+          "text": "Walk out of the Kitchen into the Central Hallway and head south into the Study Room near the Bookshelf.",
+          "start": "vp_4",
+          "goal": "vp_7"
+        }
+      ],
+      "hi": [
+        {
+          "title": "बैठक कक्ष → रसोईघर (Living to Kitchen)",
+          "text": "बैठक कक्ष में सोफा के पास से शुरू करें, गलियारे से होते हुए आगे बढ़ें और रसोईघर में फ्रिज के पास रुकें।",
+          "start": "vp_1",
+          "goal": "vp_4"
+        },
+        {
+          "title": "शयनकक्ष → भोजन कक्ष (Bedroom to Dining)",
+          "text": "शयनकक्ष से बाहर निकलें, मुख्य गलियारे को पार करें और भोजन कक्ष में डाइनिंग टेबल के पास रुकें।",
+          "start": "vp_6",
+          "goal": "vp_5"
+        }
+      ],
+      "te": [
+        {
+          "title": "లివింగ్ రూమ్ → వంటగది (Living to Kitchen)",
+          "text": "లివింగ్ రూమ్‌లో సోఫా దగ్గర ప్రారంభించి, హాల్‌వే గుండా నడిచి, వంటగదిలో ఫ్రిజ్ దగ్గర ఆగండి.",
+          "start": "vp_1",
+          "goal": "vp_4"
+        },
+        {
+          "title": "బెడ్ రూమ్ → స్టడీ రూమ్ (Bedroom to Study)",
+          "text": "బెడ్ రూమ్ నుండి బయటకు వెళ్లి, హాల్‌వే మీదుగా స్టడీ రూమ్‌లోని బుక్‌షెల్ఫ్ దగ్గరకు వెళ్లండి.",
+          "start": "vp_6",
+          "goal": "vp_7"
+        }
+      ]
+    }
+  },
+  "smart_campus_lab": {
+    "id": "smart_campus_lab",
+    "name": "Smart Robotics Campus — Floor 1",
+    "rooms": [
+      {
+        "id": "r_lobby",
+        "name": "Main Lobby",
+        "name_hi": "मुख्य लॉबी",
+        "name_te": "మెయిన్ లాబీ",
+        "x": 55,
+        "y": 140,
+        "w": 175,
+        "h": 160,
+        "color": "#6366f1",
+        "landmarks": ["Reception Desk", "Kiosk"]
+      },
+      {
+        "id": "r_corridor",
+        "name": "Tech Corridor",
+        "name_hi": "कॉरिडोर",
+        "name_te": "కారిడార్",
+        "x": 265,
+        "y": 155,
+        "w": 220,
+        "h": 130,
+        "color": "#8b5cf6",
+        "landmarks": ["Notice Board", "Water Cooler"]
+      },
+      {
+        "id": "r_ailab",
+        "name": "AI Vision Lab",
+        "name_hi": "एआई विज़न लैब",
+        "name_te": "AI ల్యాబ్",
+        "x": 265,
+        "y": 25,
+        "w": 220,
+        "h": 105,
+        "color": "#06b6d4",
+        "landmarks": ["GPU Cluster", "Whiteboard"]
+      },
+      {
+        "id": "r_drone",
+        "name": "Drone Arena",
+        "name_hi": "ड्रोन एरीना",
+        "name_te": "డ్రోన్ ఎరీనా",
+        "x": 520,
+        "y": 50,
+        "w": 215,
+        "h": 155,
+        "color": "#10b981",
+        "landmarks": ["Motion Capture Net", "Quadcopter"]
+      },
+      {
+        "id": "r_seminar",
+        "name": "Seminar Hall",
+        "name_hi": "सेमिनार हॉल",
+        "name_te": "సెమినార్ హాల్",
+        "x": 520,
+        "y": 235,
+        "w": 215,
+        "h": 150,
+        "color": "#f59e0b",
+        "landmarks": ["Projector Screen", "Podium"]
+      }
+    ],
+    "nodes": [
+      { "id": "vp_1", "x": 140, "y": 220, "roomId": "r_lobby", "label": "Lobby Entry" },
+      { "id": "vp_2", "x": 375, "y": 220, "roomId": "r_corridor", "label": "Corridor Hub" },
+      { "id": "vp_3", "x": 375, "y": 78, "roomId": "r_ailab", "label": "AI Lab Center" },
+      { "id": "vp_4", "x": 625, "y": 125, "roomId": "r_drone", "label": "Drone Test Pad" },
+      { "id": "vp_5", "x": 625, "y": 310, "roomId": "r_seminar", "label": "Seminar Stage" }
+    ],
+    "edges": [
+      ["vp_1", "vp_2"],
+      ["vp_2", "vp_3"],
+      ["vp_2", "vp_4"],
+      ["vp_3", "vp_4"],
+      ["vp_2", "vp_5"]
+    ],
+    "presets": {
+      "en": [
+        {
+          "title": "Main Lobby → Drone Arena",
+          "text": "Leave the Main Lobby, move straight through the Tech Corridor, and enter the Drone Arena near the Quadcopter.",
+          "start": "vp_1",
+          "goal": "vp_4"
+        },
+        {
+          "title": "AI Vision Lab → Seminar Hall",
+          "text": "Step out of the AI Vision Lab into the Tech Corridor and proceed south-east into the Seminar Hall.",
+          "start": "vp_3",
+          "goal": "vp_5"
+        }
+      ],
+      "hi": [
+        {
+          "title": "मुख्य लॉबी → ड्रोन एरीना",
+          "text": "मुख्य लॉबी से शुरू करें, कॉरिडोर से आगे बढ़ें और ड्रोन एरीना में रुकें।",
+          "start": "vp_1",
+          "goal": "vp_4"
+        }
+      ],
+      "te": [
+        {
+          "title": "మెయిన్ లాబీ → డ్రోన్ ఎరీనా",
+          "text": "మెయిన్ లాబీ నుండి బయలుదేరి కారిడార్ గుండా డ్రోన్ ఎరీనాకు చేరుకోండి.",
+          "start": "vp_1",
+          "goal": "vp_4"
+        }
+      ]
+    }
+  }
+}
