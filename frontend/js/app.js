@@ -462,6 +462,18 @@ function updateMapStatsHeader() {
     populateLinkDropdowns();
 }
 
+function hasDirectDoorBetweenRooms(roomAId, roomBId) {
+    const map = getActiveMap();
+    if (!map || !roomAId || !roomBId) return false;
+    if (roomAId === roomBId) return true;
+    return map.edges.some(([uId, vId]) => {
+        const u = map.nodes.find(n => n.id === uId);
+        const v = map.nodes.find(n => n.id === vId);
+        if (!u || !v) return false;
+        return (u.roomId === roomAId && v.roomId === roomBId) || (u.roomId === roomBId && v.roomId === roomAId);
+    });
+}
+
 function renderQuickRoomJumpBar() {
     const bar = document.getElementById("quickRoomJumpBar");
     if (!bar) return;
@@ -473,11 +485,23 @@ function renderQuickRoomJumpBar() {
     bar.innerHTML = "";
     map.rooms.forEach(r => {
         const isCurr = r.id === activeRoomId;
+        const hasDoor = activeRoomId ? hasDirectDoorBetweenRooms(activeRoomId, r.id) : true;
         const btn = document.createElement("button");
-        btn.className = isCurr
-            ? "px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-cyan-500/25 text-cyan-200 border border-cyan-400/60 shrink-0 transition"
-            : "px-2.5 py-1 rounded-lg text-[11px] font-medium bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700 shrink-0 transition";
-        btn.textContent = r.name;
+
+        if (isCurr) {
+            btn.className = "px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-cyan-500/25 text-cyan-200 border border-cyan-400/60 shrink-0 transition";
+            btn.textContent = r.name;
+            btn.title = "Current Room";
+        } else if (hasDoor) {
+            btn.className = "px-2.5 py-1 rounded-lg text-[11px] font-medium bg-amber-500/15 text-amber-200 border border-amber-500/40 hover:bg-amber-500/25 shrink-0 transition flex items-center gap-1.5";
+            btn.innerHTML = `<i class="fa-solid fa-door-open text-[10px] text-amber-400"></i><span>${r.name}</span>`;
+            btn.title = `Doorway connected to ${r.name}`;
+        } else {
+            btn.className = "px-2.5 py-1 rounded-lg text-[11px] font-medium bg-slate-900/60 text-slate-500 border border-slate-800 hover:border-rose-500/30 shrink-0 transition flex items-center gap-1.5 opacity-65";
+            btn.innerHTML = `<i class="fa-solid fa-lock text-[10px] text-slate-500"></i><span>${r.name}</span>`;
+            btn.title = `No direct door from current room (Link nodes to create door)`;
+        }
+
         btn.onclick = () => switchPanoramaToRoom(r.id);
         bar.appendChild(btn);
     });
@@ -489,6 +513,20 @@ function switchPanoramaToRoom(roomId) {
     const room = map.rooms.find(r => r.id === roomId);
     if (!room) return;
 
+    const currNode = map.nodes.find(n => n.id === agentState.currentNodeId);
+    const currRoomId = currNode ? currNode.roomId : null;
+
+    if (currRoomId && currRoomId !== roomId) {
+        const canTravel = hasDirectDoorBetweenRooms(currRoomId, roomId);
+        if (!canTravel) {
+            const currRoom = map.rooms.find(r => r.id === currRoomId);
+            const currName = currRoom ? currRoom.name : "Current Room";
+            showToast(`⛔ Travel Blocked: No door between ${currName} and ${room.name}! Link nodes in the Builder to create a door.`, "warn");
+            appendActionLog(`[BLOCKED] Travel to ${room.name} denied — no door connects ${currName} and ${room.name}`);
+            return;
+        }
+    }
+
     let targetNode = map.nodes.find(n => n.roomId === roomId);
     if (!targetNode && map.nodes.length > 0) {
         const rcx = room.x + room.w / 2;
@@ -499,7 +537,7 @@ function switchPanoramaToRoom(roomId) {
     }
 
     if (targetNode) {
-        onClicked3DHotspot(targetNode.id, true);
+        onClicked3DHotspot(targetNode.id, true, false);
     }
 }
 
@@ -1068,17 +1106,44 @@ function renderCanvas() {
 
     // 3B. Render 2D Doorway Markers on Room Walls where Agent Transitions Room-to-Room
     const toggleDoorsEl = document.getElementById("toggleDoors");
-    if (toggleDoorsEl && toggleDoorsEl.checked && threeState.doorPoints2D) {
+    const showDoors2D = toggleDoorsEl ? toggleDoorsEl.checked : true;
+    if (showDoors2D && threeState.doorPoints2D) {
         threeState.doorPoints2D.forEach(door => {
             ctx.save();
             ctx.translate(door.x, door.y);
             ctx.rotate(door.angle || 0);
-            ctx.fillStyle = "rgba(245, 158, 11, 0.25)";
+
+            // Door threshold (golden floor plate)
+            ctx.fillStyle = "rgba(245, 158, 11, 0.35)";
             ctx.strokeStyle = "#fbbf24";
             ctx.lineWidth = 2;
-            roundRect(ctx, -12, -5, 24, 10, 3);
+            roundRect(ctx, -14, -5, 28, 10, 3);
             ctx.fill();
             ctx.stroke();
+
+            // Architectural open door swing leaf
+            ctx.beginPath();
+            ctx.moveTo(-14, 0);
+            ctx.lineTo(-6, -16);
+            ctx.strokeStyle = "#fef08a";
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            // Swing arc (quarter circle)
+            ctx.beginPath();
+            ctx.arc(-14, 0, 16, -Math.PI / 2, -Math.PI / 3);
+            ctx.setLineDash([2, 3]);
+            ctx.strokeStyle = "rgba(251, 191, 36, 0.7)";
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
+
+            // Door badge text
+            ctx.setLineDash([]);
+            ctx.fillStyle = "#fbbf24";
+            ctx.font = "bold 9px 'JetBrains Mono', monospace";
+            ctx.textAlign = "center";
+            ctx.fillText("DOOR", 0, 15);
+
             ctx.restore();
         });
     }
@@ -1474,7 +1539,7 @@ function rebuild3DMatterportScene() {
                     threeState.worldGroup.add(dMesh);
                     threeState.doorPoints2D.push({ x: midX, y: midY, angle: doorPlacements[0].orientation === "vertical" ? Math.PI / 2 : 0 });
                 }
-            } else {
+            } else if (doorPlacements.length > 0) {
                 doorPlacements.forEach(dp => {
                     const key = `${Math.round(dp.x / 18)}_${Math.round(dp.y / 18)}`;
                     if (!placedDoorKeys.has(key)) {
@@ -1484,6 +1549,19 @@ function rebuild3DMatterportScene() {
                         threeState.doorPoints2D.push({ x: dp.x, y: dp.y, angle: dp.orientation === "vertical" ? Math.PI / 2 : 0 });
                     }
                 });
+            } else {
+                // Midpoint fallback: If room boundaries did not directly intersect segment (e.g. gap between rooms)
+                const midX = (u.x + v.x) / 2;
+                const midY = (u.y + v.y) / 2;
+                const key = `${Math.round(midX / 20)}_${Math.round(midY / 20)}`;
+                if (!placedDoorKeys.has(key)) {
+                    placedDoorKeys.add(key);
+                    const isVertical = Math.abs(u.y - v.y) > Math.abs(u.x - v.x);
+                    const orientation = isVertical ? "horizontal" : "vertical";
+                    const dMesh = create3DDoorwayMesh(midX, midY, orientation, u.id, v.id, roomU, roomV);
+                    threeState.worldGroup.add(dMesh);
+                    threeState.doorPoints2D.push({ x: midX, y: midY, angle: orientation === "vertical" ? Math.PI / 2 : 0 });
+                }
             }
         });
     }
@@ -1960,11 +2038,11 @@ function setup3DViewportInteractions(canvas) {
                 if (hits.length > 0) {
                     const hitData = hits[0].object.userData;
                     if (hitData.nodeId) {
-                        onClicked3DHotspot(hitData.nodeId, false);
+                        onClicked3DHotspot(hitData.nodeId, false, true);
                     } else if (hitData.doorBetween) {
                         const [uId, vId] = hitData.doorBetween;
                         const nextId = (agentState.currentNodeId === uId) ? vId : uId;
-                        onClicked3DHotspot(nextId, false);
+                        onClicked3DHotspot(nextId, false, false);
                     } else if (hitData.roomId) {
                         switchPanoramaToRoom(hitData.roomId);
                     }
@@ -1987,13 +2065,33 @@ function setup3DViewportInteractions(canvas) {
     }, { passive: false });
 }
 
-function onClicked3DHotspot(nodeId, autoSwitchToPanorama = false) {
+function onClicked3DHotspot(nodeId, autoSwitchToPanorama = false, isDirectUserAction = true) {
     const map = getActiveMap();
     if (!map) return;
     const targetNode = map.nodes.find(n => n.id === nodeId);
     if (!targetNode) return;
 
     const prevNode = map.nodes.find(n => n.id === agentState.currentNodeId);
+
+    // Enforce doorway travel rule:
+    // If user clicked directly in simulator mode, check inter-room travel
+    if (isDirectUserAction && currentMode === "simulator" && prevNode && prevNode.id !== targetNode.id) {
+        const currRoomId = prevNode.roomId;
+        const targetRoomId = targetNode.roomId;
+        if (currRoomId && targetRoomId && currRoomId !== targetRoomId) {
+            const hasDoor = hasDirectDoorBetweenRooms(currRoomId, targetRoomId);
+            if (!hasDoor) {
+                const currRoom = map.rooms.find(r => r.id === currRoomId);
+                const targetRoom = map.rooms.find(r => r.id === targetRoomId);
+                const currName = currRoom ? currRoom.name : "Current Room";
+                const targetName = targetRoom ? targetRoom.name : "Target Room";
+                showToast(`⛔ Travel Blocked: No door between ${currName} and ${targetName}! Link nodes in the Builder to create a door.`, "warn");
+                appendActionLog(`[BLOCKED] Travel to ${targetNode.id} denied — no doorway between ${currName} and ${targetName}`);
+                return;
+            }
+        }
+    }
+
     if (prevNode && prevNode.id !== targetNode.id) {
         agentState.headingDeg = Math.round(Math.atan2(targetNode.y - prevNode.y, targetNode.x - prevNode.x) * 180 / Math.PI);
     }
@@ -2005,7 +2103,8 @@ function onClicked3DHotspot(nodeId, autoSwitchToPanorama = false) {
     }
 
     const room = map.rooms.find(r => r.id === targetNode.roomId);
-    appendActionLog(`[WALK] Moving to ${targetNode.id} (${room ? room.name : "Room"}) at ${agentState.walkingPace.toFixed(1)}x pace`);
+    const crossedDoor = (prevNode && prevNode.roomId !== targetNode.roomId) ? " [Through Doorway]" : "";
+    appendActionLog(`[WALK] Moving to ${targetNode.id} (${room ? room.name : "Room"})${crossedDoor} at ${agentState.walkingPace.toFixed(1)}x pace`);
     updateMetricsDisplay(targetNode.id === agentState.goalNodeId);
     renderCanvas();
     update3DTrajectoryAndHighlights();
@@ -2362,17 +2461,29 @@ function connectNodes(id1, id2) {
         return false;
     }
 
+    const n1 = map.nodes.find(n => n.id === id1);
+    const n2 = map.nodes.find(n => n.id === id2);
+    const r1 = n1 ? map.rooms.find(r => r.id === n1.roomId) : null;
+    const r2 = n2 ? map.rooms.find(r => r.id === n2.roomId) : null;
+
     map.edges.push([id1, id2]);
-    showToast(`Connected ${id1} ↔ ${id2}! Navigation path updated.`, "success");
+
+    if (r1 && r2 && r1.id !== r2.id) {
+        showToast(`🚪 Door created between ${r1.name} and ${r2.name}! Inter-room travel unlocked.`, "success");
+        appendActionLog(`[DOORWAY] Door created between ${r1.name} ↔ ${r2.name}`);
+    } else {
+        showToast(`Connected viewpoints ${id1} ↔ ${id2}! Navigation path updated.`, "success");
+    }
 
     // Recompute path for simulation immediately
     agentState.plannedPath = computeShortestPath(agentState.startNodeId, agentState.goalNodeId);
     updateMetricsDisplay();
     updateMapStatsHeader();
     populateLinkDropdowns();
+    renderQuickRoomJumpBar();
     renderCanvas();
     syncMapToBackend(map);
-    schedule3DSceneRebuild();
+    rebuild3DMatterportScene();
     return true;
 }
 
