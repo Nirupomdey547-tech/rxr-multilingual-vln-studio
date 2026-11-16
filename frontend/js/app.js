@@ -1090,14 +1090,39 @@ function renderCanvas() {
                 }
             });
         }
+        if (isSelected && currentMode === "editor") {
+            // Draw a prominent [✕ Delete] button at top-right of the room
+            const btnW = 54;
+            const btnH = 20;
+            const btnX = room.x + room.w - btnW - 6;
+            const btnY = room.y + 6;
+            ctx.save();
+            ctx.fillStyle = "rgba(225, 29, 72, 0.92)";
+            ctx.strokeStyle = "#fda4af";
+            ctx.lineWidth = 1.5;
+            roundRect(ctx, btnX, btnY, btnW, btnH, 5);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 10px Inter, sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("✕ Delete", btnX + btnW / 2, btnY + 14);
+            ctx.restore();
+        }
         ctx.restore();
     });
 
-    // 3. Render Topological Navigation Edges
+    // 3. Render Topological Navigation Edges (Only where direct links or doors connect rooms)
     map.edges.forEach(([uId, vId]) => {
         const u = map.nodes.find(n => n.id === uId);
         const v = map.nodes.find(n => n.id === vId);
         if (!u || !v) return;
+
+        // If nodes are in different rooms, only draw edge if a door connects them!
+        if (u.roomId !== v.roomId && !hasDirectDoorBetweenRooms(u.roomId, v.roomId)) {
+            return;
+        }
 
         ctx.save();
         ctx.beginPath();
@@ -1186,21 +1211,50 @@ function renderCanvas() {
         }
     }
 
-    // 4. Render Executed Trajectory Path
+    // 4. Render Executed Trajectory Path (Only where links & doors exist - remove lines where no link)
     if (agentState.executedNodes.length > 1) {
         ctx.save();
-        ctx.beginPath();
-        for (let i = 0; i < agentState.executedNodes.length; i++) {
-            const n = map.nodes.find(node => node.id === agentState.executedNodes[i]);
-            if (n) {
-                if (i === 0) ctx.moveTo(n.x, n.y);
-                else ctx.lineTo(n.x, n.y);
-            }
-        }
         ctx.strokeStyle = "#fbbf24";
         ctx.lineWidth = 4;
         ctx.shadowColor = "rgba(251, 191, 36, 0.5)";
         ctx.shadowBlur = 8;
+        ctx.beginPath();
+        let pathStarted = false;
+
+        for (let i = 0; i < agentState.executedNodes.length; i++) {
+            const curr = map.nodes.find(node => node.id === agentState.executedNodes[i]);
+            if (!curr) continue;
+
+            if (i === 0) {
+                ctx.moveTo(curr.x, curr.y);
+                pathStarted = true;
+            } else {
+                const prev = map.nodes.find(node => node.id === agentState.executedNodes[i - 1]);
+                if (!prev) {
+                    ctx.moveTo(curr.x, curr.y);
+                    continue;
+                }
+
+                // Check if an actual edge exists in map.edges between prev and curr
+                const edgeExists = map.edges.some(([a, b]) =>
+                    (a === prev.id && b === curr.id) || (a === curr.id && b === prev.id)
+                );
+
+                // If in different rooms, must have a direct door between them
+                const roomsLinked = (prev.roomId === curr.roomId) || hasDirectDoorBetweenRooms(prev.roomId, curr.roomId);
+
+                if (edgeExists && roomsLinked) {
+                    if (!pathStarted) {
+                        ctx.moveTo(prev.x, prev.y);
+                        pathStarted = true;
+                    }
+                    ctx.lineTo(curr.x, curr.y);
+                } else {
+                    // No link between these rooms - do NOT draw line across!
+                    ctx.moveTo(curr.x, curr.y);
+                }
+            }
+        }
         ctx.stroke();
         ctx.restore();
     }
@@ -2443,11 +2497,32 @@ function onCanvasPointerDown(e) {
         return;
     }
 
+    // Check if clicked the [✕ Delete] button on the selected room
+    if (selectedEntity && selectedEntity.type === "room") {
+        const selRoom = map.rooms.find(r => r.id === selectedEntity.id);
+        if (selRoom) {
+            const btnW = 54;
+            const btnH = 20;
+            const btnX = selRoom.x + selRoom.w - btnW - 6;
+            const btnY = selRoom.y + 6;
+            if (pt.x >= btnX && pt.x <= btnX + btnW && pt.y >= btnY && pt.y <= btnY + btnH) {
+                removeRoomById(selRoom.id);
+                return;
+            }
+        }
+    }
+
     const hitNode = map.nodes.find(n => Math.hypot(n.x - pt.x, n.y - pt.y) <= 22);
     if (hitNode) {
         selectedEntity = { type: "node", id: hitNode.id };
         dragTarget = { type: "node", id: hitNode.id, offsetX: pt.x - hitNode.x, offsetY: pt.y - hitNode.y };
-        onClicked3DHotspot(hitNode.id, false);
+        agentState.currentNodeId = hitNode.id;
+        agentState.executedNodes = [hitNode.id]; // Reset executed nodes so no stray yellow lines appear across unlinked rooms
+        agentState.x = hitNode.x;
+        agentState.y = hitNode.y;
+        agentState.targetX = hitNode.x;
+        agentState.targetY = hitNode.y;
+        syncAgentTo3DScene(false);
         updateSelectedEntityInspector();
         renderRoomsListInEditor();
         renderCanvas();
@@ -2827,6 +2902,10 @@ function removeDoor(uId, vId, roomUId, roomVId) {
     rebuild3DMatterportScene();
 }
 
+function addBuiltRoomToMap() {
+    addRoomDirectly();
+}
+
 function addRoomDirectly() {
     const cx = Math.round((floorplanCanvas ? floorplanCanvas.width : 800) / 2 + (Math.random() * 120 - 60));
     const cy = Math.round((floorplanCanvas ? floorplanCanvas.height : 480) / 2 + (Math.random() * 100 - 50));
@@ -2868,16 +2947,6 @@ function createRoomAtPosition(cx, cy) {
     const nodeX = Math.round(rx + w / 2);
     const nodeY = Math.round(ry + h / 2);
 
-    let nearestNode = null;
-    let bestDist = Infinity;
-    map.nodes.forEach(n => {
-        const d = Math.hypot(n.x - nodeX, n.y - nodeY);
-        if (d < bestDist) {
-            bestDist = d;
-            nearestNode = n;
-        }
-    });
-
     map.nodes.push({
         id: newNodeId,
         x: nodeX,
@@ -2886,9 +2955,8 @@ function createRoomAtPosition(cx, cy) {
         label: `${roomName} Center`
     });
 
-    if (nearestNode) {
-        map.edges.push([nearestNode.id, newNodeId]);
-    }
+    // Do NOT automatically link across rooms without a door. User explicitly links them.
+    selectedEntity = { type: "room", id: newRoomId };
 
     // Auto-initialize start and goal nodes for simulation if this is a newly created map
     if (!agentState.startNodeId || map.nodes.length === 1) {

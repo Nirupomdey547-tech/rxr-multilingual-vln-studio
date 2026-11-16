@@ -295,11 +295,11 @@
                     </div>
                 </div>
 
-                <!-- Quick Add Custom Room Form -->
+                <!-- Build Room Form -->
                 <div class="glass-card rounded-xl p-3.5 border border-slate-800 flex flex-col gap-3">
                     <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center justify-between">
-                        <span>Create / Configure Room</span>
-                        <span class="text-[10px] font-normal text-slate-400">Click "Add Room" or button below</span>
+                        <span>Build Room</span>
+                        <span class="text-[10px] font-normal text-slate-400">Configure & Add to Map</span>
                     </h3>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -336,9 +336,9 @@
                         <input id="newRoomLandmarks" type="text" placeholder="e.g., Workbench, 3D Printer, Monitor" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
                     </div>
 
-                    <button onclick="addRoomDirectly()" class="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition">
+                    <button onclick="addBuiltRoomToMap()" id="btnAddBuiltRoom" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition">
                         <i class="fa-solid fa-plus-circle"></i>
-                        <span>Insert Room + Auto-Waypoint on Map</span>
+                        <span>Add Room to Map</span>
                     </button>
                 </div>
 
@@ -598,8 +598,8 @@
                 <div>
                     <label class="block text-xs text-slate-300 mb-1">Template Starter Layout</label>
                     <select id="createMapTemplate" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+                        <option value="empty" selected>Blank Canvas (0 rooms - build from scratch)</option>
                         <option value="starter">Starter 2-Room Layout (Entrance + Main Hall)</option>
-                        <option value="empty">Blank Canvas (Build from scratch)</option>
                     </select>
                 </div>
 
